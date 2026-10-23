@@ -76,3 +76,16 @@ body.pixel-8 .grain{opacity:.025}
  .lily-link{box-shadow:4px 5px 0 rgba(28,45,65,.5)}
 }
 @media(prefers-reduced-motion:reduce){#world::after{opacity:.06}}
+
+
+/* Meadow reference art direction: soft sage greens, stone neutrals, warm sunlight and less candy saturation. */
+:root{--ink:#f5f2dc;--muted:#d8e4cf;--line:rgba(237,232,194,.46);--mint:#b8e0a2;--deep:#253b32}
+html,body{background:#7c9b85}
+#world canvas{filter:saturate(1.08) contrast(1.04) brightness(1.035)}
+.topbar,.section-panel,.world-hud,.toast{border-color:rgba(231,221,174,.76)}
+.world-hud{background:rgba(39,63,52,.82);border-color:#d7d4b2}
+.hud-kicker{color:#f0dda2}.hud-stat strong{color:#c7e6a8}.hud-stat span{color:#d7e1c9}
+body.pixel-8 #world canvas{filter:saturate(1.2) contrast(1.08) brightness(1.025)}
+#world::after{opacity:.07;background:
+ linear-gradient(30deg,transparent 49.5%,rgba(245,242,211,.1) 50%,transparent 50.5%) 0 0/72px 42px,
+ linear-gradient(150deg,transparent 49.5%,rgba(180,223,174,.08) 50%,transparent 50.5%) 0 0/72px 42px}
