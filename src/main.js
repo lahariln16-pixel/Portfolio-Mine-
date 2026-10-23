@@ -185,15 +185,15 @@ const track = new THREE.Group();
 track.position.set(0, -.32, -19);
 scene.add(track);
 const trackShape = new THREE.Shape();
-trackShape.absellipse(0, 0, 13.5, 6.3, 0, Math.PI * 2, false, 0);
+trackShape.absellipse(0, 0, 22.2, 12.1, 0, Math.PI * 2, false, 0);
 const trackHole = new THREE.Path();
-trackHole.absellipse(0, 0, 9.2, 3.2, 0, Math.PI * 2, true, 0);
+trackHole.absellipse(0, 0, 18.0, 8.7, 0, Math.PI * 2, true, 0);
 trackShape.holes.push(trackHole);
 const trackMesh = new THREE.Mesh(new THREE.ShapeGeometry(trackShape, 80), mats.track);
 trackMesh.rotation.x = -Math.PI / 2;
 track.add(trackMesh);
 const innerGrass = new THREE.Mesh(new THREE.CircleGeometry(1, 48), mats.darkGrass);
-innerGrass.scale.set(9.1, 3.1, 1);
+innerGrass.scale.set(17.9, 8.6, 1);
 innerGrass.rotation.x = -Math.PI / 2;
 innerGrass.position.y = .015;
 track.add(innerGrass);
@@ -207,19 +207,19 @@ function makeLine(rx, rz, color, tube = .075) {
   const mesh = new THREE.Mesh(new THREE.TubeGeometry(curve, 180, tube, 6, true), mat(color, .8));
   track.add(mesh);
 }
-makeLine(13.35, 6.2, '#d8d4bd', .09);
-makeLine(9.25, 3.25, '#d8d4bd', .075);
+makeLine(22.05, 11.95, '#d8d4bd', .09);
+makeLine(18.05, 8.75, '#d8d4bd', .075);
 for (let i = 0; i < 55; i++) {
   const a = i / 55 * Math.PI * 2;
   const stripe = new THREE.Mesh(new THREE.BoxGeometry(.3, .025, .13), mat(i % 2 ? '#f5f2dc' : '#353b39'));
-  stripe.position.set(Math.cos(a) * 13.4, .055, Math.sin(a) * 6.25);
+  stripe.position.set(Math.cos(a) * 22.1, .055, Math.sin(a) * 12.0);
   stripe.rotation.y = -a;
   track.add(stripe);
 }
 for (let i = 0; i < 28; i++) {
   const a = i / 28 * Math.PI * 2;
   const tree = makeTree();
-  tree.position.set(Math.cos(a) * (18 + (i % 3) * 1.5), -.25, -19 + Math.sin(a) * (10 + (i % 2) * 2));
+  tree.position.set(Math.cos(a) * (27 + (i % 3) * 1.8), -.25, -19 + Math.sin(a) * (15 + (i % 2) * 2));
   tree.scale.setScalar(.8 + (i % 4) * .13);
   scene.add(tree);
 }
@@ -341,6 +341,11 @@ const pondGroup = new THREE.Group();
 scene.add(pondGroup);
 const pondRadiusX = 8.1, pondRadiusZ = 5.35;
 const fishBoundsX = pondRadiusX - 1.25, fishBoundsZ = pondRadiusZ - 1.15;
+function clampFishToPond(x,z){
+  const nx=x/fishBoundsX,nz=z/fishBoundsZ,rr=nx*nx+nz*nz;
+  if(rr>.78){const scale=Math.sqrt(.78/rr);return {x:x*scale,z:z*scale};}
+  return {x,z};
+}
 const bed = new THREE.Mesh(new THREE.CircleGeometry(1, 96), mat('#b1a88c', .95));
 bed.rotation.x = -Math.PI / 2; bed.scale.set(pondRadiusX, pondRadiusZ, 1); bed.position.y = -.44; pondGroup.add(bed);
 const rim = new THREE.Mesh(new THREE.TorusGeometry(1, .22, 12, 96), mat('#7d8a70'));
@@ -495,9 +500,9 @@ function makeKoi(index, x, z) {
     const eye = new THREE.Mesh(new THREE.BoxGeometry(.055,.055,.055),eyeMat);
     eye.position.set(side*.145,.105,-.36); g.add(eye);
   }
-  const safeX=THREE.MathUtils.clamp(x,-fishBoundsX,fishBoundsX),safeZ=THREE.MathUtils.clamp(z,-fishBoundsZ,fishBoundsZ);
-  g.position.set(safeX,-.035,safeZ); pondGroup.add(g);
-  koi.push({group:g,tail:tailJoint,home:new THREE.Vector3(safeX,0,safeZ),target:new THREE.Vector3(safeX,0,safeZ),phase:Math.random()*6,speed:.6+Math.random()*.3,scare:0,index});
+  const safe=clampFishToPond(x,z);
+  g.position.set(safe.x,-.035,safe.z); pondGroup.add(g);
+  koi.push({group:g,tail:tailJoint,home:new THREE.Vector3(safe.x,0,safe.z),target:new THREE.Vector3(safe.x,0,safe.z),phase:Math.random()*6,speed:.6+Math.random()*.3,scare:0,index});
 }
 makeKoi(0,-1.5,-1.1); makeKoi(1,1.4,-.9); makeKoi(2,.2,1.8); makeKoi(3,-4.8,.8); makeKoi(4,4.8,.6); makeKoi(5,-.8,3.7); makeKoi(6,2.5,-3.7);
 
@@ -861,8 +866,8 @@ function animate(){
       }
     }
     // Keep every fish inside a safe inset of the elliptical shoreline.
-    fish.target.x=THREE.MathUtils.clamp(fish.target.x,-fishBoundsX,fishBoundsX);
-    fish.target.z=THREE.MathUtils.clamp(fish.target.z,-fishBoundsZ,fishBoundsZ);
+    const safeTarget=clampFishToPond(fish.target.x,fish.target.z);
+    fish.target.set(safeTarget.x,0,safeTarget.z);
     const dx=fish.target.x-g.position.x,dz=fish.target.z-g.position.z;
     const remaining=Math.hypot(dx,dz);
     const moveRate=fish.speed*1.35+fish.scare*4.5;
@@ -871,8 +876,8 @@ function animate(){
       g.position.z += dz/remaining*Math.min(remaining,dt*moveRate);
       g.rotation.y=Math.atan2(-dx,-dz);
     }
-    g.position.x=THREE.MathUtils.clamp(g.position.x,-fishBoundsX,fishBoundsX);
-    g.position.z=THREE.MathUtils.clamp(g.position.z,-fishBoundsZ,fishBoundsZ);
+    const safePosition=clampFishToPond(g.position.x,g.position.z);
+    g.position.x=safePosition.x;g.position.z=safePosition.z;
     g.rotation.z=Math.sin(elapsed*3+fish.phase)*.035*(1+fish.scare);
     fish.tail.rotation.y=Math.sin(elapsed*13+fish.phase)*(.28+fish.scare*.28);
   });
