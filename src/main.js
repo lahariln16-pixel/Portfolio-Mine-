@@ -24,6 +24,7 @@ camera.lookAt(0, 17, -22);
 const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(1);
 let pixelStyle = '64';
+let realisticMode = false;
 function setPixelResolution(){
   const divisor = pixelStyle === '8' ? 4 : pixelStyle === '16' ? 2.5 : 1;
   renderer.setSize(Math.max(240,Math.floor(innerWidth/divisor)),Math.max(135,Math.floor(innerHeight/divisor)),false);
@@ -33,6 +34,16 @@ renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
+renderer.shadowMap.enabled = false;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+sun.castShadow = false;
+sun.shadow.mapSize.set(1536, 1536);
+sun.shadow.camera.left = -42; sun.shadow.camera.right = 42;
+sun.shadow.camera.top = 38; sun.shadow.camera.bottom = -38;
+sun.shadow.camera.near = .5; sun.shadow.camera.far = 110;
+sun.shadow.bias = -.00012;
+sun.shadow.normalBias = .035;
+sun.shadow.radius = 3;
 root.appendChild(renderer.domElement);
 
 const hemi = new THREE.HemisphereLight(0xc9e9f0, 0x2e4939, 2.1);
@@ -489,32 +500,33 @@ const rim = new THREE.Mesh(new THREE.TorusGeometry(1, .22, 12, 96), mat('#7d8a70
 rim.rotation.x = Math.PI / 2; rim.scale.set(pondRadiusX + .08, pondRadiusZ + .08, 1); rim.position.y = -.06; pondGroup.add(rim);
 const waterUniforms = {
   uTime: { value: 0 }, uPointer: { value: new THREE.Vector2(-5, -5) }, uRipple: { value: 0 },
-  uRain: { value: 0 }, uDay: { value: 1 }, uSunDir: { value: new THREE.Vector3(-.5, 1, .35).normalize() }
+  uRain: { value: 0 }, uDay: { value: 1 }, uRealism: { value: 0 }, uSunDir: { value: new THREE.Vector3(-.5, 1, .35).normalize() }
 };
 const waterMaterial = new THREE.ShaderMaterial({
   uniforms: waterUniforms, transparent: false,
   vertexShader: `
     varying vec2 vUv;
-    uniform float uTime; uniform vec2 uPointer; uniform float uRipple;
+    uniform float uTime; uniform vec2 uPointer; uniform float uRipple; uniform float uRealism;
     void main(){
       vUv=uv;
       vec3 p=position;
       float d=distance(uv,uPointer);
-      // Stepped vertex displacement: small flat facets read like pixel-art water.
-      float ring=sin(floor(d*34.0)*2.0-uTime*5.0)*exp(-d*7.0)*uRipple;
-      p.z += ring*0.035;
-      p.z += floor(sin(p.x*2.0+uTime*.6)*3.0)*.004 + floor(cos(p.y*2.0-uTime*.5)*3.0)*.004;
+      float ring=mix(sin(floor(d*34.0)*2.0-uTime*5.0),sin(d*92.0-uTime*5.0),uRealism)*exp(-d*7.0)*uRipple;
+      p.z += ring*mix(.035,.055,uRealism);
+      float fineWaves=sin(p.x*2.0+uTime*.6)*.004 + cos(p.y*2.0-uTime*.5)*.004;
+      float steppedWaves=floor(sin(p.x*2.0+uTime*.6)*3.0)*.004 + floor(cos(p.y*2.0-uTime*.5)*3.0)*.004;
+      p.z += mix(steppedWaves,fineWaves,uRealism);
       gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);
     }`,
   fragmentShader: `
     varying vec2 vUv;
-    uniform float uTime; uniform vec2 uPointer; uniform float uRipple; uniform float uRain; uniform float uDay; uniform vec3 uSunDir;
+    uniform float uTime; uniform vec2 uPointer; uniform float uRipple; uniform float uRain; uniform float uDay; uniform float uRealism; uniform vec3 uSunDir;
     float hash21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
     void main(){
       vec2 uv=vUv;
       vec2 cell=floor(uv*vec2(112.0,72.0));
-      vec2 p=(cell+.5)/vec2(112.0,72.0);
-      float time=floor(uTime*5.0)*.2;
+      vec2 p=mix((cell+.5)/vec2(112.0,72.0),uv,uRealism);
+      float time=mix(floor(uTime*5.0)*.2,uTime,uRealism);
       float lane=floor(p.y*42.0);
       float seed=hash21(vec2(lane,7.0));
       float flow=p.x*15.0+time*(.22+seed*.25)+lane*1.73;
@@ -527,11 +539,14 @@ const waterMaterial = new THREE.ShaderMaterial({
       float rings=(1.0-smoothstep(.04,.15,abs(fract(d*25.0-time*.55)-.5)))*exp(-d*5.0)*uRipple;
       float rainRing=(1.0-smoothstep(.04,.18,abs(fract(d*47.0-time*1.8)-.5)))*step(.965,hash21(floor(p*vec2(61.0,43.0))))*uRain;
       vec3 deep=vec3(.035,.19,.19), mid=vec3(.075,.34,.31), shallow=vec3(.22,.47,.39), light=vec3(.60,.72,.52);
-      float band=floor(clamp(p.y+.08*sin(p.x*5.0+time*.15),0.0,1.0)*4.0)/3.0;
+      float band=mix(floor(clamp(p.y+.08*sin(p.x*5.0+time*.15),0.0,1.0)*4.0)/3.0,clamp(p.y+.09*sin(p.x*7.0+time*.22)+.035*sin(p.y*19.0-time*.8),0.0,1.0),uRealism);
       vec3 col=mix(deep,mid,smoothstep(0.0,.52,band));
       col=mix(col,shallow,smoothstep(.42,.88,band));
       col=mix(col,mid,wave*.45);
       col=mix(col,light,clamp(wave*.48+sparkle*.28+rings*.75+rainRing*.65,0.0,.82));
+      vec3 realisticDeep=vec3(.018,.105,.12), realisticMid=vec3(.025,.23,.25), realisticLight=vec3(.38,.62,.59);
+      col=mix(col,mix(realisticDeep,realisticMid,smoothstep(.08,.92,band)),uRealism);
+      col=mix(col,realisticLight,clamp((rings*.6+rainRing*.48+pow(max(0.0,sin(p.x*48.0+sin(p.y*21.0)+time*1.8)),18.0)*.2)*uRealism,0.0,.7));
       float skyGlint=step(.987,hash21(cell+vec2(3.0,11.0)));
       col=mix(col,vec3(.78,.83,.66),skyGlint*(.10+.18*uDay));
       float edge=min(min(uv.x,1.0-uv.x),min(uv.y,1.0-uv.y));
@@ -762,7 +777,7 @@ function applyEnvironment(){
   scene.fog.color.set(scrollProgress > .62 ? mistColor : t.fog);
   scene.fog.near = scrollProgress > .62 ? 5.5 : 8;
   scene.fog.far = scrollProgress > .62 ? 17 : 25;
-  sun.color.set(t.sun);sun.intensity=3.2*t.day;hemi.intensity=.45+1.65*t.day;fill.intensity=.25+1.0*t.day;
+  sun.color.set(t.sun);sun.intensity=3.2*t.day;hemi.intensity=realisticMode?1.05*t.day:.45+1.65*t.day;fill.intensity=realisticMode?.45*t.day:.25+1.0*t.day;
   rain.visible=w.rain>0;rainMaterial.opacity=.1+w.rain*.55;
   motes.material.opacity=timeIndex===3?.72:timeIndex===2?.18:0;
   stars.material.opacity=[0,.08,.55,.95][timeIndex];
@@ -949,8 +964,8 @@ function animate(){
   const fogTarget = new THREE.Color(timeModes[timeIndex].fog);
   scene.background.copy(skyTarget).lerp(mist,pondMist);
   scene.fog.color.copy(fogTarget).lerp(mist,pondMist);
-  scene.fog.near = THREE.MathUtils.lerp(18,15,pondMist);
-  scene.fog.far = THREE.MathUtils.lerp(42,34,pondMist);
+  scene.fog.near = THREE.MathUtils.lerp(18,15,pondMist) * (realisticMode ? 1.3 : 1);
+  scene.fog.far = THREE.MathUtils.lerp(42,34,pondMist) * (realisticMode ? 1.35 : 1);
   waterUniforms.uTime.value=elapsed;
   swayingTrees.forEach(({tree,phase,amount})=>{tree.rotation.z=Math.sin(elapsed*.7+phase)*amount;tree.rotation.x=Math.cos(elapsed*.53+phase)*amount*.55;});
   stars.visible=timeIndex>=1;stars.rotation.z=Math.sin(elapsed*.025)*.012;
@@ -1201,6 +1216,28 @@ photoModeButton?.addEventListener('click', () => setPhotoMode(!photoMode));
 // Pixel-art quality switch: 8-bit is chunky, 16-bit is balanced, and 64-bit
 // uses the full device viewport for a crisp, high-detail version of the world.
 const pixelStyleButton = document.querySelector('#pixelStyleButton');
+const realismButton = document.querySelector('#realismButton');
+function applyRealism(enabled, notify = true) {
+  realisticMode = enabled;
+  renderer.shadowMap.enabled = enabled;
+  sun.castShadow = enabled;
+  renderer.toneMappingExposure = enabled ? 1.0 : 1.08;
+  waterUniforms.uRealism.value = enabled ? 1 : 0;
+  scene.traverse(object => {
+    if (!object.isMesh || object === water) return;
+    object.castShadow = enabled && !(object.isInstancedMesh && object.count > 500);
+    object.receiveShadow = enabled;
+  });
+  document.body.classList.toggle('realistic-mode', enabled);
+  if (realismButton) {
+    realismButton.textContent = enabled ? 'REALISTIC ✓' : 'REALISM';
+    realismButton.setAttribute('aria-pressed', String(enabled));
+    realismButton.title = enabled ? 'Return to the original pixel-art look' : 'Enable realistic lighting, soft shadows, natural water and filmic color';
+  }
+  applyEnvironment();
+  if (notify) showToast(enabled ? 'REALISM MODE · NATURAL LIGHT & SHADOWS' : 'PIXEL WORLD MODE · ORIGINAL STYLE');
+}
+realismButton?.addEventListener('click', () => applyRealism(!realisticMode));
 function applyPixelStyle(style, notify = true) {
   pixelStyle = style;
   document.body.classList.toggle('pixel-8', style === '8');
@@ -1217,3 +1254,4 @@ function applyPixelStyle(style, notify = true) {
 }
 pixelStyleButton?.addEventListener('click', () => applyPixelStyle(pixelStyle === '8' ? '16' : pixelStyle === '16' ? '64' : '8', true));
 applyPixelStyle('64', false);
+applyRealism(false, false);
