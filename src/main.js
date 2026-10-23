@@ -17,7 +17,7 @@ const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 const scene = new THREE.Scene();
 scene.background = new THREE.Color('#c8d8cf');
 // Dense meadow mist hides the far side of the circuit and lets only a slice of track emerge.
-scene.fog = new THREE.Fog('#c8d8cf', 10, 27);
+scene.fog = new THREE.Fog('#c8d8cf', 18, 42);
 const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 250);
 camera.position.set(0, 2, 8);
 camera.lookAt(0, 17, -22);
@@ -778,14 +778,14 @@ function animate(){
   requestAnimationFrame(animate);
   const dt=Math.min(clock.getDelta(),.04);elapsed+=dt;
   // Blend into pale, dense mist as the camera leaves the track and settles above the pond.
-  const pondMist = THREE.MathUtils.smoothstep(scrollProgress,.53,.76);
+  const pondMist = THREE.MathUtils.smoothstep(scrollProgress,.62,.84);
   const mist = new THREE.Color('#c8d8cf');
   const skyTarget = new THREE.Color(timeModes[timeIndex].sky);
   const fogTarget = new THREE.Color(timeModes[timeIndex].fog);
   scene.background.copy(skyTarget).lerp(mist,pondMist);
   scene.fog.color.copy(fogTarget).lerp(mist,pondMist);
-  scene.fog.near = THREE.MathUtils.lerp(8,5.5,pondMist);
-  scene.fog.far = THREE.MathUtils.lerp(25,17,pondMist);
+  scene.fog.near = THREE.MathUtils.lerp(18,15,pondMist);
+  scene.fog.far = THREE.MathUtils.lerp(42,34,pondMist);
   waterUniforms.uTime.value=elapsed;
   swayingTrees.forEach(({tree,phase,amount})=>{tree.rotation.z=Math.sin(elapsed*.7+phase)*amount;tree.rotation.x=Math.cos(elapsed*.53+phase)*amount*.55;});
   stars.visible=timeIndex>=1;stars.rotation.z=Math.sin(elapsed*.025)*.012;
@@ -915,14 +915,14 @@ function animate(){
   // a sweeping side pass, then a gentle orbit-like descent to the pond.
   const keyframes = [
     { p: 0,    pos: new THREE.Vector3(10, 7, 13),     target: new THREE.Vector3(0, 16, -28), fov: 47 },
-    { p: .12,  pos: new THREE.Vector3(15, 10, 1),      target: new THREE.Vector3(-1, 1, -22), fov: 54 },
-    { p: .27,  pos: new THREE.Vector3(17, 4.8, -12),   target: new THREE.Vector3(0, .5, -19), fov: 64 },
-    { p: .43,  pos: new THREE.Vector3(-14, 5.8, -21),  target: new THREE.Vector3(0, .4, -19), fov: 60 },
-    { p: .57,  pos: new THREE.Vector3(-9, 10, -1),     target: new THREE.Vector3(0, .2, -8),  fov: 55 },
-    { p: .72,  pos: new THREE.Vector3(8, 8, 10),        target: new THREE.Vector3(0, 0, 0),    fov: 46 },
+    { p: .12,  pos: new THREE.Vector3(12, 8, 2),       target: new THREE.Vector3(0, .4, -19),  fov: 52 },
+    { p: .27,  pos: new THREE.Vector3(13, 5.2, -12),    target: new THREE.Vector3(0, .4, -19),  fov: 55 },
+    { p: .43,  pos: new THREE.Vector3(-12, 5.5, -21),   target: new THREE.Vector3(0, .4, -19),  fov: 54 },
+    { p: .57,  pos: new THREE.Vector3(-7, 9, -1),       target: new THREE.Vector3(0, .2, -5),   fov: 49 },
+    { p: .72,  pos: new THREE.Vector3(6, 8.5, 10),      target: new THREE.Vector3(0, 0, 0),    fov: 43 },
     // Dive into a close overhead pond composition; the circuit is left behind in the fog.
-    { p: .86,  pos: new THREE.Vector3(0, 15.5, 0.8),  target: new THREE.Vector3(0, 0, 0),    fov: 38 },
-    { p: 1,    pos: new THREE.Vector3(0, 15.5, 0.8),  target: new THREE.Vector3(0, 0, 0),    fov: 38 }
+    { p: .86,  pos: new THREE.Vector3(0, 15.5, 1.8),   target: new THREE.Vector3(0, 0, 0),    fov: 34 },
+    { p: 1,    pos: new THREE.Vector3(0, 15.5, 1.8),   target: new THREE.Vector3(0, 0, 0),    fov: 34 }
   ];
   let a=keyframes[0], b=keyframes[keyframes.length-1];
   for(let i=0;i<keyframes.length-1;i++){if(scrollProgress>=keyframes[i].p&&scrollProgress<=keyframes[i+1].p){a=keyframes[i];b=keyframes[i+1];break;}}
