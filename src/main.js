@@ -227,31 +227,35 @@ const waterUniforms = {
 const waterMaterial = new THREE.ShaderMaterial({
   uniforms: waterUniforms, transparent: false,
   vertexShader: `
-    varying vec2 vUv; varying vec3 vWorld;
+    varying vec2 vUv;
     uniform float uTime; uniform vec2 uPointer; uniform float uRipple;
     void main(){
-      vUv=uv; vec3 p=position;
+      vUv=uv;
+      vec3 p=position;
       float d=distance(uv,uPointer);
-      float ring=sin(d*80.0-uTime*5.0)*exp(-d*8.0)*uRipple;
-      p.z += ring*0.018;
-      p.z += sin(p.x*2.1+uTime*.8)*.012 + cos(p.y*2.7-uTime*.65)*.009;
-      vec4 world=modelMatrix*vec4(p,1.0); vWorld=world.xyz;
-      gl_Position=projectionMatrix*viewMatrix*world;
+      // Stepped vertex displacement: small flat facets read like pixel-art water.
+      float ring=sin(floor(d*34.0)*2.0-uTime*5.0)*exp(-d*7.0)*uRipple;
+      p.z += ring*0.035;
+      p.z += floor(sin(p.x*2.0+uTime*.6)*3.0)*.004 + floor(cos(p.y*2.0-uTime*.5)*3.0)*.004;
+      gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);
     }`,
   fragmentShader: `
-    varying vec2 vUv; varying vec3 vWorld;
+    varying vec2 vUv;
     uniform float uTime; uniform vec2 uPointer; uniform float uRipple; uniform float uRain; uniform float uDay; uniform vec3 uSunDir;
     void main(){
       vec2 p=vUv;
-      float wave=sin(p.x*40.0+uTime*1.4)*cos(p.y*33.0-uTime*1.1);
-      float d=distance(p,uPointer);
-      float rings=sin(d*190.0-uTime*5.0)*exp(-d*15.0)*uRipple;
-      float rainWave=sin(p.x*250.0+p.y*170.0-uTime*3.0)*uRain*.025;
-      float shimmer=wave*.025+rings*.055+rainWave;
-      vec3 deep=vec3(.025,.19,.17); vec3 shallow=vec3(.27,.49,.38);
-      vec3 col=mix(deep,shallow,smoothstep(.08,.9,p.y)+shimmer);
-      float skyReflection=pow(max(0.0,sin(p.x*8.0+uTime*.18)*cos(p.y*5.0-uTime*.12)),12.0);
-      col=mix(col,vec3(.72,.82,.66),skyReflection*(.12+.25*uDay));
+      // Coarse grid quantization gives the pond visible square pixels.
+      vec2 cell=floor(p*64.0)/64.0;
+      float wave=sin(cell.x*32.0+floor(uTime*4.0)*.12)*cos(cell.y*28.0-floor(uTime*3.0)*.12);
+      float d=distance(cell,uPointer);
+      float rings=sin(floor(d*54.0)*6.28318-floor(uTime*5.0))*exp(-d*10.0)*uRipple;
+      float rainWave=step(.84,fract(cell.x*91.0+cell.y*57.0-floor(uTime*5.0)*.13))*uRain;
+      float shimmer=wave*.055+rings*.16+rainWave*.12;
+      vec3 deep=vec3(.035,.22,.22); vec3 shallow=vec3(.31,.52,.40);
+      float band=floor(clamp(cell.y+shimmer,0.0,1.0)*6.0)/6.0;
+      vec3 col=mix(deep,shallow,band);
+      float skyReflection=step(.88,fract(sin(floor(cell.x*18.0)+floor(cell.y*13.0)+floor(uTime*.5))*43758.5));
+      col=mix(col,vec3(.76,.81,.64),skyReflection*(.10+.22*uDay));
       float edge=min(min(p.x,1.0-p.x),min(p.y,1.0-p.y));
       col=mix(vec3(.10,.20,.17),col,smoothstep(0.0,.055,edge));
       gl_FragColor=vec4(col,1.0);
