@@ -838,7 +838,7 @@ function animate(){
     const dx=fish.target.x-g.position.x,dz=fish.target.z-g.position.z;
     if(Math.hypot(dx,dz)>.05)g.rotation.y=Math.atan2(dx,dz);
     g.rotation.z=Math.sin(elapsed*3+fish.phase)*.035*(1+fish.scare);
-    g.children[2].rotation.y=Math.sin(elapsed*10+fish.phase)*.32;
+    fish.tail.rotation.y=Math.sin(elapsed*10+fish.phase)*.32;
   });
   frogs.forEach(f=>{
     f.phase+=dt;
