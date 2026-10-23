@@ -39,3 +39,18 @@ body.photo-mode #photoExit{display:block!important;opacity:1;visibility:visible}
 body.photo-mode #world canvas{cursor:crosshair}
 @media(max-width:760px){.world-hud{top:78px;right:12px;width:150px;padding:10px 11px;opacity:.88}.hud-kicker,.hud-stat span{font-size:12px}.hud-title,.hud-stat strong{font-size:13px}.hud-rule{margin:7px 0}.hud-stat{margin:7px 0}.hud-compass{margin-top:7px}.photo-exit{font-size:12px;max-width:92vw;text-align:center;white-space:normal}}
 @media(prefers-reduced-motion:reduce){.world-hud{backdrop-filter:none}}
+
+
+/* Saturated 8/16-bit palette: candy skies, vivid greens and crisp voxel edges. */
+:root{--ink:#fff7d6;--muted:#e5d4ff;--line:rgba(255,237,174,.48);--mint:#7dffb3;--deep:#17103b}
+html,body{background:#1a1646}
+#world canvas{image-rendering:pixelated;filter:saturate(1.34) contrast(1.07)}
+.topbar,.section-panel,.world-hud,.toast{border-color:rgba(255,225,134,.8)}
+.icon-button{box-shadow:3px 3px 0 rgba(12,9,43,.52)}
+.icon-button:hover{filter:saturate(1.35) brightness(1.12)}
+.mode-button[aria-pressed="true"]{background:rgba(255,111,190,.24);border-color:#ff9bd7;color:#fff0fc}
+.world-hud{background:rgba(36,23,87,.82);border-color:#ffd47c;box-shadow:5px 5px 0 rgba(19,10,54,.6)}
+.hud-kicker{color:#ffe18c}.hud-stat strong{color:#9dffbf}.hud-stat span{color:#e7c7ff}
+body.pixel-8 #world canvas{image-rendering:pixelated;filter:saturate(1.55) contrast(1.12)}
+body.pixel-8 .grain{opacity:.025}
+@media(max-width:760px){.mode-button{font-size:8px}}
