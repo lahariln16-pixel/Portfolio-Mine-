@@ -22,7 +22,12 @@ camera.position.set(0, 2, 8);
 camera.lookAt(0, 17, -22);
 const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(1);
-renderer.setSize(Math.max(320,Math.floor(innerWidth/3)),Math.max(180,Math.floor(innerHeight/3)),false);
+let pixelStyle = '16';
+function setPixelResolution(){
+  const divisor = pixelStyle === '8' ? 4 : 2.5;
+  renderer.setSize(Math.max(240,Math.floor(innerWidth/divisor)),Math.max(135,Math.floor(innerHeight/divisor)),false);
+}
+setPixelResolution();
 renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -823,7 +828,7 @@ animate();
 function resize(){
   camera.aspect=innerWidth/innerHeight;
   camera.fov=innerWidth<700?(scrollProgress>.66?49:scrollProgress>.16?57:48):(scrollProgress>.66?43:scrollProgress>.16?55:48);
-  camera.updateProjectionMatrix();renderer.setSize(Math.max(320,Math.floor(innerWidth/3)),Math.max(180,Math.floor(innerHeight/3)),false);
+  camera.updateProjectionMatrix();setPixelResolution();
 }
 addEventListener('resize',resize);
 applyEnvironment();
@@ -863,3 +868,22 @@ function setPhotoMode(enabled) {
   if (enabled) showToast('PHOTO MODE · ESC TO RETURN');
 }
 photoModeButton?.addEventListener('click', () => setPhotoMode(!photoMode));
+
+
+// Pixel-era switch: 8-bit uses chunkier pixels and a punchier palette;
+// 16-bit uses finer rendering while retaining the voxel-art world.
+const pixelStyleButton = document.querySelector('#pixelStyleButton');
+function applyPixelStyle(style, notify = true) {
+  pixelStyle = style;
+  document.body.classList.toggle('pixel-8', style === '8');
+  setPixelResolution();
+  if (pixelStyleButton) {
+    pixelStyleButton.textContent = style === '8' ? '8-BIT' : '16-BIT';
+    pixelStyleButton.setAttribute('aria-pressed', String(style === '8'));
+    pixelStyleButton.title = style === '8'
+      ? 'Switch to finer 16-bit pixel rendering'
+      : 'Switch to chunkier 8-bit pixel rendering';
+  }
+  if (notify) showToast(style === '8' ? '8-BIT MODE · CHUNKY PIXELS' : '16-BIT MODE · FINE PIXELS');
+}
+pixelStyleButton?.addEventListener('click', () => applyPixelStyle(pixelStyle === '8' ? '16' : '8', true));
