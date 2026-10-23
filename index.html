@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101e22">
+  <meta name="description" content="A cinematic racing world that drifts into a living koi pond. An interactive portfolio by its creator.">
+  <title>Pondside — A Living Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div id="world" aria-label="Interactive 3D pond and racing world"></div>
+  <div class="vignette"></div>
+  <div class="grain"></div>
+
+  <header class="topbar">
+    <a class="wordmark" href="#" aria-label="Pondside home"><span class="mark">◉</span> PONDSIDE<span class="wordmark-sub"> / INTERACTIVE PORTFOLIO</span></a>
+    <div class="live-status"><span class="live-dot"></span><span id="statusText">RACE IN PROGRESS</span></div>
+    <button id="soundToggle" class="icon-button" aria-label="Toggle sound" title="Toggle sound">♪ <span id="soundLabel">SOUND OFF</span></button>
+  </header>
+
+  <section id="intro" class="intro">
+    <div class="intro-copy">
+      <p class="eyebrow"><span class="eyebrow-line"></span> A WORLD BETWEEN SPEED & STILLNESS</p>
+      <h1>LET THE<br><em>WORLD</em> BREATHE.</h1>
+      <p class="intro-description">The race is still running. Somewhere beside the circuit, a quieter world is waiting.</p>
+      <button id="enterButton" class="enter-button"><span>ENTER THE POND</span><span class="arrow">↘</span></button>
+      <p class="hint">HEADPHONES RECOMMENDED · INTERACTIVE EXPERIENCE</p>
+    </div>
+    <div class="intro-side-note"><span>01 — CIRCUIT</span><span>CAMERA MOVING</span></div>
+    <div class="scroll-cue"><span></span> FOLLOW THE SOUND</div>
+  </section>
+
+  <main id="pondUI" class="pond-ui is-hidden">
+    <div class="pond-heading">
+      <p class="eyebrow"><span class="eyebrow-line"></span> A LITTLE WORLD OF MY OWN</p>
+      <h1>Stay <em>awhile.</em></h1>
+      <p class="pond-subtitle">Choose a lily pad. Follow the frog.</p>
+    </div>
+
+    <div class="pond-label pond-label-left"><span class="label-dot"></span><span>THE POND</span><small>01 / STILLNESS</small></div>
+    <div class="pond-label pond-label-right"><span class="label-dot"></span><span id="weatherLabel">CLEAR SKIES</span><small id="clockLabel">DAYLIGHT</small></div>
+
+    <nav class="lily-nav" aria-label="Portfolio sections">
+      <button class="lily-link" data-section="about" data-pad="0"><span class="lily-icon">✳</span><span class="lily-title">ABOUT</span><small>WHO I AM</small></button>
+      <button class="lily-link" data-section="projects" data-pad="1"><span class="lily-icon">↗</span><span class="lily-title">PROJECTS</span><small>THINGS I'VE MADE</small></button>
+      <button class="lily-link" data-section="skills" data-pad="2"><span class="lily-icon">⌘</span><span class="lily-title">SKILLS</span><small>TOOLS OF THE TRADE</small></button>
+      <button class="lily-link" data-section="contact" data-pad="3"><span class="lily-icon">↗</span><span class="lily-title">CONTACT</span><small>SAY HELLO</small></button>
+    </nav>
+
+    <div class="pond-bottom">
+      <span><span class="live-dot"></span> THE CIRCUIT IS STILL ALIVE</span>
+      <div class="bottom-controls">
+        <button id="weatherButton" class="small-control">WEATHER <span>↻</span></button>
+        <button id="timeButton" class="small-control">TIME OF DAY <span>◐</span></button>
+        <button id="motionButton" class="small-control" aria-pressed="false">REDUCE MOTION <span>○</span></button>
+      </div>
+    </div>
+  </main>
+
+  <section id="sectionPanel" class="section-panel" aria-live="polite" aria-hidden="true">
+    <button id="closePanel" class="close-panel" aria-label="Close section">×</button>
+    <p id="panelEyebrow" class="eyebrow"><span class="eyebrow-line"></span> FROM THE POND</p>
+    <h2 id="panelTitle">About <em>me.</em></h2>
+    <p id="panelText">A little more about the person behind this world.</p>
+    <div id="panelExtra" class="panel-extra"></div>
+    <p class="panel-foot">THE FROG WILL GUIDE YOU BACK <span>↗</span></p>
+  </section>
+
+  <div id="toast" class="toast" role="status"></div>
+  <div class="sound-note" id="soundNote">CLICK ANYWHERE TO WAKE THE WORLD'S SOUND</div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
