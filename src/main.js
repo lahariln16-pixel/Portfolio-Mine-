@@ -36,14 +36,6 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
 renderer.shadowMap.enabled = false;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-sun.castShadow = false;
-sun.shadow.mapSize.set(1536, 1536);
-sun.shadow.camera.left = -42; sun.shadow.camera.right = 42;
-sun.shadow.camera.top = 38; sun.shadow.camera.bottom = -38;
-sun.shadow.camera.near = .5; sun.shadow.camera.far = 110;
-sun.shadow.bias = -.00012;
-sun.shadow.normalBias = .035;
-sun.shadow.radius = 3;
 root.appendChild(renderer.domElement);
 
 const hemi = new THREE.HemisphereLight(0xc9e9f0, 0x2e4939, 2.1);
@@ -54,6 +46,15 @@ scene.add(sun);
 const fill = new THREE.DirectionalLight(0x8dc9cf, 1.1);
 fill.position.set(10, 8, -18);
 scene.add(fill);
+// Configure the optional shadow pass only after the sun light exists.
+sun.castShadow = false;
+sun.shadow.mapSize.set(1536, 1536);
+sun.shadow.camera.left = -42; sun.shadow.camera.right = 42;
+sun.shadow.camera.top = 38; sun.shadow.camera.bottom = -38;
+sun.shadow.camera.near = .5; sun.shadow.camera.far = 110;
+sun.shadow.bias = -.00012;
+sun.shadow.normalBias = .035;
+sun.shadow.radius = 3;
 
 // A visible sun anchors the opening sky shot. It stays in the scene as the camera dives toward the circuit.
 const sunDisc = new THREE.Mesh(new THREE.BoxGeometry(4.3,4.3,1), new THREE.MeshBasicMaterial({ color: 0xffedc2 }));
