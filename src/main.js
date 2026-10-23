@@ -37,7 +37,13 @@ const fill = new THREE.DirectionalLight(0x8dc9cf, 1.1);
 fill.position.set(10, 8, -18);
 scene.add(fill);
 
-// A visible sun anchors the opening sky shot. It stays in the scene as the camera dives toward the circuit.\nconst sunDisc = new THREE.Mesh(new THREE.SphereGeometry(2.15, 32, 24), new THREE.MeshBasicMaterial({ color: 0xffedc2 }));\nsunDisc.position.set(0, 18, -22);\nscene.add(sunDisc);\nconst sunHalo = new THREE.Mesh(new THREE.SphereGeometry(3.3, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffd99a, transparent: true, opacity: .13, depthWrite: false }));\nsunHalo.position.copy(sunDisc.position);\nscene.add(sunHalo);
+// A visible sun anchors the opening sky shot. It stays in the scene as the camera dives toward the circuit.
+const sunDisc = new THREE.Mesh(new THREE.SphereGeometry(2.15, 32, 24), new THREE.MeshBasicMaterial({ color: 0xffedc2 }));
+sunDisc.position.set(0, 18, -22);
+scene.add(sunDisc);
+const sunHalo = new THREE.Mesh(new THREE.SphereGeometry(3.3, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffd99a, transparent: true, opacity: .13, depthWrite: false }));
+sunHalo.position.copy(sunDisc.position);
+scene.add(sunHalo);
 
 const mats = {};
 function mat(color, roughness = .75, metalness = 0) {
@@ -364,7 +370,30 @@ const moteGeo=new THREE.BufferGeometry();moteGeo.setAttribute('position',new THR
 const moteMat=new THREE.PointsMaterial({color:0xd7f6a5,size:.075,transparent:true,opacity:0,blending:THREE.AdditiveBlending});
 const motes=new THREE.Points(moteGeo,moteMat);scene.add(motes);
 
-let entered=false, reduceMotion=reduceMotionQuery.matches, weatherIndex=0, timeIndex=0, soundOn=false;\nlet scrollProgress = 0;\nconst scrollTrack = document.querySelector('#scrollTrack');\nfunction readScrollProgress(){\n  const maxScroll = Math.max(1, document.documentElement.scrollHeight - innerHeight);\n  scrollProgress = THREE.MathUtils.clamp(window.scrollY / maxScroll, 0, 1);\n  entered = scrollProgress > .66;\n  const introOpacity = 1 - THREE.MathUtils.smoothstep(scrollProgress, .04, .22);\n  intro.style.opacity = String(introOpacity);\n  intro.style.pointerEvents = scrollProgress < .16 ? 'auto' : 'none';\n  if(scrollProgress > .62){\n    pondUI.classList.remove('is-hidden');\n    pondUI.style.opacity = String(THREE.MathUtils.smoothstep(scrollProgress, .62, .78));\n    pondUI.style.pointerEvents = scrollProgress > .72 ? 'auto' : 'none';\n    statusText.textContent = 'POND IN VIEW';\n  } else {\n    pondUI.classList.add('is-hidden');\n    pondUI.style.opacity = '0';\n    pondUI.style.pointerEvents = 'none';\n    statusText.textContent = scrollProgress > .18 ? 'RACE IN PROGRESS' : 'LOOK UP';\n  }\n}\nwindow.addEventListener('scroll', readScrollProgress, { passive: true });\nreadScrollProgress();
+let entered=false, reduceMotion=reduceMotionQuery.matches, weatherIndex=0, timeIndex=0, soundOn=false;
+let scrollProgress = 0;
+const scrollTrack = document.querySelector('#scrollTrack');
+function readScrollProgress(){
+  const maxScroll = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+  scrollProgress = THREE.MathUtils.clamp(window.scrollY / maxScroll, 0, 1);
+  entered = scrollProgress > .66;
+  const introOpacity = 1 - THREE.MathUtils.smoothstep(scrollProgress, .04, .22);
+  intro.style.opacity = String(introOpacity);
+  intro.style.pointerEvents = scrollProgress < .16 ? 'auto' : 'none';
+  if(scrollProgress > .62){
+    pondUI.classList.remove('is-hidden');
+    pondUI.style.opacity = String(THREE.MathUtils.smoothstep(scrollProgress, .62, .78));
+    pondUI.style.pointerEvents = scrollProgress > .72 ? 'auto' : 'none';
+    statusText.textContent = 'POND IN VIEW';
+  } else {
+    pondUI.classList.add('is-hidden');
+    pondUI.style.opacity = '0';
+    pondUI.style.pointerEvents = 'none';
+    statusText.textContent = scrollProgress > .18 ? 'RACE IN PROGRESS' : 'LOOK UP';
+  }
+}
+window.addEventListener('scroll', readScrollProgress, { passive: true });
+readScrollProgress();
 const weatherModes=[{name:'CLEAR SKIES',rain:0,fog:.012},{name:'MISTY',rain:0,fog:.032},{name:'LIGHT RAIN',rain:.5,fog:.018},{name:'RAIN SHOWER',rain:1,fog:.025}];
 const timeModes=[{name:'DAYLIGHT',day:1,sky:'#8eacb1',fog:'#a6c2bd',sun:'#ffe8bd'},{name:'GOLDEN HOUR',day:.82,sky:'#d4a17a',fog:'#d5b69a',sun:'#ffbd78'},{name:'BLUE HOUR',day:.38,sky:'#334d66',fog:'#536c78',sun:'#a5c9dc'},{name:'NIGHT',day:.13,sky:'#101e32',fog:'#263b4a',sun:'#91a9d9'}];
 function applyEnvironment(){
@@ -425,7 +454,10 @@ soundToggle.addEventListener('click',()=>setSound(!soundOn));
 document.addEventListener('pointerdown',()=>{if(!soundOn)soundNote.classList.add('is-hidden')},{once:true});
 
 let screenShakeUntil=0, cameraMode='intro', transitionStart=0, transitionFrom=null;
-function enterPond(){\n  window.scrollTo({top: Math.round((document.documentElement.scrollHeight - innerHeight) * .72), behavior: reduceMotion ? 'auto' : 'smooth'});\n}\nenterButton.addEventListener('click',enterPond);
+function enterPond(){
+  window.scrollTo({top: Math.round((document.documentElement.scrollHeight - innerHeight) * .72), behavior: reduceMotion ? 'auto' : 'smooth'});
+}
+enterButton.addEventListener('click',enterPond);
 
 const raycaster=new THREE.Raycaster(), pointerNdc=new THREE.Vector2();
 const pointerWorld=new THREE.Vector2(-20,-20);
@@ -485,7 +517,14 @@ function animate(){
   const dt=Math.min(clock.getDelta(),.04);elapsed+=dt;
   waterUniforms.uTime.value=elapsed;
   if(waterUniforms.uRipple.value>0.06)waterUniforms.uRipple.value*=Math.pow(.15,dt);else waterUniforms.uRipple.value=0;
-  racers.forEach((r,i)=>{\n    const raceActive = scrollProgress > .16;\n    r.mesh.visible = raceActive;\n    if(raceActive) r.phase+=dt*r.speed;\n    const a=r.phase;\n    r.mesh.position.set(Math.cos(a)*r.radiusX,.02, -19+Math.sin(a)*r.radiusZ);\n    r.mesh.rotation.y=-Math.atan2(Math.cos(a)*r.radiusZ,-Math.sin(a)*r.radiusX);\n  });
+  racers.forEach((r,i)=>{
+    const raceActive = scrollProgress > .16;
+    r.mesh.visible = raceActive;
+    if(raceActive) r.phase+=dt*r.speed;
+    const a=r.phase;
+    r.mesh.position.set(Math.cos(a)*r.radiusX,.02, -19+Math.sin(a)*r.radiusZ);
+    r.mesh.rotation.y=-Math.atan2(Math.cos(a)*r.radiusZ,-Math.sin(a)*r.radiusX);
+  });
   pads.forEach(p=>{p.group.position.y=Math.sin(elapsed*.9+p.phase)*.035; p.group.rotation.y=Math.sin(elapsed*.4+p.phase)*.035;});
   koi.forEach((fish,i)=>{
     const g=fish.group;
@@ -554,4 +593,5 @@ function resize(){
 addEventListener('resize',resize);
 applyEnvironment();
 if(reduceMotionQuery.matches)document.querySelector('#motionButton').setAttribute('aria-pressed','true');
-window.addEventListener('keydown',e=>{if(e.key==='Escape'){panel.classList.remove('is-open');panel.setAttribute('aria-hidden','true');}});\nwindow.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='PageDown'){if(scrollProgress<.99){e.preventDefault();window.scrollBy({top:innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}if(e.key==='ArrowUp'||e.key==='PageUp'){if(scrollProgress>.01){e.preventDefault();window.scrollBy({top:-innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'){panel.classList.remove('is-open');panel.setAttribute('aria-hidden','true');}});
+window.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='PageDown'){if(scrollProgress<.99){e.preventDefault();window.scrollBy({top:innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}if(e.key==='ArrowUp'||e.key==='PageUp'){if(scrollProgress>.01){e.preventDefault();window.scrollBy({top:-innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}});
