@@ -783,12 +783,14 @@ function animate(){
     f.mesh.visible=scrollProgress>.48;
   });
   // Scroll is the timeline: sky -> circuit/race -> overhead pond. Each pose blends into the next.
+  // 2.5D camera path: an oblique, isometric-inspired angle gives the voxel world
+  // clear foreground/midground/background layers without losing the scroll journey.
   const keyframes = [
-    { p: 0,    pos: new THREE.Vector3(0, 2, 8),    target: new THREE.Vector3(0, 17, -22), fov: 48 },
-    { p: .18,  pos: new THREE.Vector3(0, 5, 5),    target: new THREE.Vector3(0, 0, -19),  fov: 55 },
-    { p: .42,  pos: new THREE.Vector3(0, 3.4, -7), target: new THREE.Vector3(0, 0, -19),  fov: 61 },
-    { p: .64,  pos: new THREE.Vector3(0, 9, -4),   target: new THREE.Vector3(0, 0, -2),   fov: 53 },
-    { p: 1,    pos: new THREE.Vector3(0, 17.5, 0), target: new THREE.Vector3(0, 0, 0),    fov: 43 }
+    { p: 0,    pos: new THREE.Vector3(8, 5, 9),      target: new THREE.Vector3(0, 17, -22), fov: 48 },
+    { p: .18,  pos: new THREE.Vector3(11, 8, 3),     target: new THREE.Vector3(0, 0, -19),  fov: 55 },
+    { p: .42,  pos: new THREE.Vector3(12, 6.2, -6),  target: new THREE.Vector3(0, 0, -19),  fov: 61 },
+    { p: .64,  pos: new THREE.Vector3(10, 12, 2),    target: new THREE.Vector3(0, 0, -2),   fov: 53 },
+    { p: 1,    pos: new THREE.Vector3(12, 18, 12),  target: new THREE.Vector3(0, 0, 0),    fov: 43 }
   ];
   let a=keyframes[0], b=keyframes[keyframes.length-1];
   for(let i=0;i<keyframes.length-1;i++){if(scrollProgress>=keyframes[i].p&&scrollProgress<=keyframes[i+1].p){a=keyframes[i];b=keyframes[i+1];break;}}
