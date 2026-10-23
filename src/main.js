@@ -819,8 +819,7 @@ function animate(){
     r.mesh.position.set(Math.cos(a)*r.radiusX,.02, -19+Math.sin(a)*r.radiusZ);
     // The car's nose points along local -Z. Aim it at the ellipse tangent,
     // accounting for the direction the phase is travelling.
-    const direction = (driveMode && i===0 && (driveKeys.has('a')||driveKeys.has('arrowleft'))) ? -1 :
-      (driveMode && i===0 && (driveKeys.has('d')||driveKeys.has('arrowright'))) ? 1 : 1;
+    const direction = (driveMode && i===0 && (driveKeys.has('d')||driveKeys.has('arrowright'))) ? -1 : 1;
     const tangentX = -Math.sin(a)*r.radiusX*direction;
     const tangentZ = Math.cos(a)*r.radiusZ*direction;
     r.mesh.rotation.y = Math.atan2(-tangentX,-tangentZ);
