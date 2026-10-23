@@ -109,7 +109,7 @@ const flowerStemMat = mat('#547b4e');
 const flowerPetalGeo = new THREE.BoxGeometry(.105,.055,.075);
 const flowerCenterGeo = new THREE.BoxGeometry(.07,.07,.07);
 const flowerStemGeo = new THREE.BoxGeometry(.035,.22,.035);
-const flowerInstances = flowerPetalMats.map(m=>new THREE.InstancedMesh(flowerPetalGeo,m,68));
+const flowerInstances = flowerPetalMats.map(m=>new THREE.InstancedMesh(flowerPetalGeo,m,340));
 const flowerCenterInstances = new THREE.InstancedMesh(flowerCenterGeo,flowerCenters,340);
 const flowerStemInstances = new THREE.InstancedMesh(flowerStemGeo,flowerStemMat,340);
 const detailDummy = new THREE.Object3D();
@@ -213,7 +213,7 @@ for(let i=0;i<8;i++){
     const puff=new THREE.Mesh(new THREE.BoxGeometry(1.5+(j%3)*.5,.42+(j%2)*.18, .75),cloudMat);
     puff.position.set((j-2.5)*.68,(j%3)*.2,Math.sin(j*1.7)*.15);g.add(puff);
   }
-  g.position.set((Math.random()-.5)*46,13+Math.random()*7,-30+Math.random()*34);
+  g.position.set((Math.random()-.5)*46,19+Math.random()*5,-30+Math.random()*34);
   g.scale.setScalar(.8+Math.random()*.8);scene.add(g);
   driftingClouds.push({group:g,speed:.18+Math.random()*.18,homeZ:g.position.z,phase:Math.random()*6});
 }
