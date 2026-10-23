@@ -721,6 +721,13 @@ function animate(){
   const s=reduceMotion?rawT:smoothstep(rawT);
   camera.position.lerpVectors(a.pos,b.pos,s);
   const lookTarget=new THREE.Vector3().lerpVectors(a.target,b.target,s);
+  // Gentle racing follow-camera sway adds speed without fighting the scroll-driven journey.
+  const raceBlend=THREE.MathUtils.smoothstep(scrollProgress,.2,.42)*(1-THREE.MathUtils.smoothstep(scrollProgress,.52,.65));
+  if(!reduceMotion&&raceBlend>.001){
+    camera.position.x+=Math.sin(elapsed*.72)*.42*raceBlend;
+    lookTarget.x+=Math.sin(elapsed*.72+.7)*.24*raceBlend;
+    camera.position.y+=Math.sin(elapsed*1.1)*.06*raceBlend;
+  }
   const shake=(!reduceMotion&&scrollProgress>.16&&scrollProgress<.63&&performance.now()<screenShakeUntil)?(Math.random()-.5)*.025:0;
   camera.position.x+=shake;
   camera.lookAt(lookTarget);
