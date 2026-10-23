@@ -54,3 +54,25 @@ html,body{background:#1a1646}
 body.pixel-8 #world canvas{image-rendering:pixelated;filter:saturate(1.55) contrast(1.12)}
 body.pixel-8 .grain{opacity:.025}
 @media(max-width:760px){.mode-button{font-size:8px}}
+
+/* 2.5D isometric presentation: layered depth, crisp bevels, and a soft pixel-world atmosphere. */
+#world::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;opacity:.16;background:
+ linear-gradient(30deg,transparent 49.5%,rgba(255,231,179,.12) 50%,transparent 50.5%) 0 0/72px 42px,
+ linear-gradient(150deg,transparent 49.5%,rgba(115,255,209,.09) 50%,transparent 50.5%) 0 0/72px 42px;
+ mask-image:linear-gradient(180deg,transparent 0%,#000 30%,#000 86%,transparent 100%)}
+#world canvas{filter:saturate(1.24) contrast(1.06);image-rendering:pixelated}
+.topbar{box-shadow:0 5px 0 rgba(45,30,70,.16)}
+.intro-copy,.pond-heading{filter:drop-shadow(4px 5px 0 rgba(44,30,68,.22))}
+.intro-description,.pond-subtitle{max-width:390px;text-shadow:2px 2px 0 rgba(45,30,70,.28)}
+.lily-link{transform:translate(-50%,-50%) rotateX(9deg);box-shadow:6px 7px 0 rgba(28,45,65,.5),inset 0 0 0 3px rgba(255,233,184,.08)}
+.lily-link:hover,.lily-link:focus-visible{transform:translate(-50%,-50%) rotateX(9deg) translateY(-3px)}
+.section-panel{box-shadow:8px 8px 0 rgba(35,28,63,.55),inset 0 0 0 3px rgba(255,227,173,.08)}
+.panel-chip{box-shadow:3px 3px 0 rgba(24,24,52,.3)}
+.world-hud{transform:perspective(700px) rotateY(-3deg);transform-origin:left center}
+.pond-label{filter:drop-shadow(2px 2px 0 rgba(44,30,68,.45))}
+@media(max-width:760px){
+ #world::after{opacity:.09;background-size:48px 28px}
+ .world-hud{transform:none}
+ .lily-link{box-shadow:4px 5px 0 rgba(28,45,65,.5)}
+}
+@media(prefers-reduced-motion:reduce){#world::after{opacity:.06}}
