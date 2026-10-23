@@ -4,15 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#101e22">
-  <meta name="description" content="A cinematic racing world that drifts into a living koi pond. An interactive portfolio by its creator.">
-  <title>Pondside — A Living Portfolio</title>
+  <meta name="description" content="A fully 3D pixel-art world with mountains, a race track, wooden bridge, and interactive koi pond.">
+  <title>Pixel Pond — A 3D Pixel-Art Portfolio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
 </head>
 <body>
   <div id="world" aria-label="Interactive 3D pond and racing world"></div>
+  <div id="scrollTrack" class="scroll-track" aria-hidden="true"></div>
   <div class="vignette"></div>
   <div class="grain"></div>
 
@@ -24,14 +26,14 @@
 
   <section id="intro" class="intro">
     <div class="intro-copy">
-      <p class="eyebrow"><span class="eyebrow-line"></span> A WORLD BETWEEN SPEED & STILLNESS</p>
-      <h1>LET THE<br><em>WORLD</em> BREATHE.</h1>
-      <p class="intro-description">The race is still running. Somewhere beside the circuit, a quieter world is waiting.</p>
-      <button id="enterButton" class="enter-button"><span>ENTER THE POND</span><span class="arrow">↘</span></button>
+      <p class="eyebrow"><span class="eyebrow-line"></span> A LITTLE WORLD IN PIXELS</p>
+      <h1>A TINY<br><em>PIXEL</em> WORLD.</h1>
+      <p class="intro-description">A tiny mountain circuit, a wooden bridge, and a pond full of curious little creatures.</p>
+      <button id="enterButton" class="enter-button"><span>SCROLL TO ENTER</span><span class="arrow">↓</span></button>
       <p class="hint">HEADPHONES RECOMMENDED · INTERACTIVE EXPERIENCE</p>
     </div>
-    <div class="intro-side-note"><span>01 — CIRCUIT</span><span>CAMERA MOVING</span></div>
-    <div class="scroll-cue"><span></span> FOLLOW THE SOUND</div>
+    <div class="intro-side-note"><span>01 — THE SKY</span><span>SCROLL TO DESCEND</span></div>
+    <div class="scroll-cue"><span></span> SCROLL TO EXPLORE <span></span></div>
   </section>
 
   <main id="pondUI" class="pond-ui is-hidden">

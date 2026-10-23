@@ -15,14 +15,15 @@ const panel = document.querySelector('#sectionPanel');
 const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#8eacb1');
-scene.fog = new THREE.FogExp2('#a6c2bd', 0.012);
+scene.background = new THREE.Color('#d98cae');
+scene.fog = new THREE.Fog('#c78aa9', 0.009);
 const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 250);
-camera.position.set(0, 10, -3);
-camera.lookAt(0, 0, -17);
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.8));
-renderer.setSize(innerWidth, innerHeight);
+camera.position.set(0, 2, 8);
+camera.lookAt(0, 17, -22);
+const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(1);
+renderer.setSize(Math.max(320,Math.floor(innerWidth/3)),Math.max(180,Math.floor(innerHeight/3)),false);
+renderer.domElement.style.width='100%';renderer.domElement.style.height='100%';
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
@@ -37,18 +38,26 @@ const fill = new THREE.DirectionalLight(0x8dc9cf, 1.1);
 fill.position.set(10, 8, -18);
 scene.add(fill);
 
+// A visible sun anchors the opening sky shot. It stays in the scene as the camera dives toward the circuit.
+const sunDisc = new THREE.Mesh(new THREE.BoxGeometry(4.3,4.3,1), new THREE.MeshBasicMaterial({ color: 0xffedc2 }));
+sunDisc.position.set(0, 18, -22);
+scene.add(sunDisc);
+const sunHalo = new THREE.Mesh(new THREE.BoxGeometry(6,6,.8), new THREE.MeshBasicMaterial({ color: 0xffd99a, transparent: true, opacity: .13, depthWrite: false }));
+sunHalo.position.copy(sunDisc.position);
+scene.add(sunHalo);
+
 const mats = {};
 function mat(color, roughness = .75, metalness = 0) {
   return new THREE.MeshStandardMaterial({ color, roughness, metalness });
 }
-mats.grass = mat('#4f7451');
-mats.darkGrass = mat('#294d3e');
-mats.track = mat('#292f30', .85);
+mats.grass = mat('#66865b');
+mats.darkGrass = mat('#354f59');
+mats.track = mat('#48465a', .85);
 mats.trackEdge = mat('#e2d7b5', .7);
-mats.rock = mat('#71847b');
-mats.stone = mat('#b7b9a6');
-mats.lily = mat('#467b4f', .42);
-mats.lilyLight = mat('#79a96b', .55);
+mats.rock = mat('#a16b91');
+mats.stone = mat('#c0a0a0');
+mats.lily = mat('#58845a', .42);
+mats.lilyLight = mat('#83a765', .55);
 mats.white = mat('#f0eee1', .45);
 mats.red = mat('#d24b35', .36, .16);
 mats.orange = mat('#e6a14e', .38, .12);
@@ -58,10 +67,18 @@ mats.frogDark = mat('#315b39', .58);
 mats.koiWhite = mat('#f0eee2', .34);
 mats.koiOrange = mat('#e76b3f', .42);
 mats.koiBlack = mat('#242a2b', .45);
-mats.bark = mat('#59473a');
-mats.leaf = mat('#456b48');
-mats.leaf2 = mat('#68895a');
+mats.bark = mat('#a95e57');
+mats.leaf = mat('#264957');
+mats.leaf2 = mat('#356171');
 
+
+function pixelMountain(x,z,w,h,colors){
+ const g=new THREE.Group();
+ for(let i=0;i<7;i++){const f=1-i/7;const m=new THREE.Mesh(new THREE.BoxGeometry(w*f,h/7+.12,3.5),mat(colors[i%colors.length]));m.position.y=-h*.35+i*h/7;g.add(m);}
+ g.position.set(x,0,z);scene.add(g);
+ if(h>15)for(let k=0;k<4;k++){const cap=new THREE.Mesh(new THREE.BoxGeometry(w*.12,1.2,3.6),mat('#f0dfd7'));cap.position.set(x-w*.13+k*w*.09,h*.43,z);scene.add(cap);}
+}
+for(let i=0;i<14;i++){const x=-38+i*5.8;pixelMountain(x,-48-(i%3)*3,13+(i%4)*2,17+(i%5)*3,['#70527f','#a16b91','#d7859a']);pixelMountain(x+2,-40-(i%4)*2,9+(i%3)*2,10+(i%4)*2,['#875783','#bd7895','#d78a9c']);}
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(150, 150), mats.grass);
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -.58;
@@ -75,6 +92,10 @@ for (let i = 0; i < 12; i++) {
   scene.add(hill);
 }
 
+
+const bridge = new THREE.Group(); scene.add(bridge);
+for(let i=0;i<10;i++){const plank=new THREE.Mesh(new THREE.BoxGeometry(.42,.16,3.8),mat(i%2?'#c67868':'#a95e57'));plank.position.set(-2+i*.43,.16,-1);bridge.add(plank);}
+for(const x of [-2.15,2.15]){const rail=new THREE.Mesh(new THREE.BoxGeometry(.18,.22,4.1),mat('#df9279'));rail.position.set(x,.85,-1);bridge.add(rail);for(let z=-2.8;z<.9;z+=.9){const post=new THREE.Mesh(new THREE.BoxGeometry(.18,.95,.18),mat('#df9279'));post.position.set(x,.48,z);bridge.add(post);}}
 const track = new THREE.Group();
 track.position.set(0, -.32, -19);
 scene.add(track);
@@ -363,6 +384,29 @@ const moteMat=new THREE.PointsMaterial({color:0xd7f6a5,size:.075,transparent:tru
 const motes=new THREE.Points(moteGeo,moteMat);scene.add(motes);
 
 let entered=false, reduceMotion=reduceMotionQuery.matches, weatherIndex=0, timeIndex=0, soundOn=false;
+let scrollProgress = 0;
+const scrollTrack = document.querySelector('#scrollTrack');
+function readScrollProgress(){
+  const maxScroll = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+  scrollProgress = THREE.MathUtils.clamp(window.scrollY / maxScroll, 0, 1);
+  entered = scrollProgress > .66;
+  const introOpacity = 1 - THREE.MathUtils.smoothstep(scrollProgress, .04, .22);
+  intro.style.opacity = String(introOpacity);
+  intro.style.pointerEvents = scrollProgress < .16 ? 'auto' : 'none';
+  if(scrollProgress > .62){
+    pondUI.classList.remove('is-hidden');
+    pondUI.style.opacity = String(THREE.MathUtils.smoothstep(scrollProgress, .62, .78));
+    pondUI.style.pointerEvents = scrollProgress > .72 ? 'auto' : 'none';
+    statusText.textContent = 'POND IN VIEW';
+  } else {
+    pondUI.classList.add('is-hidden');
+    pondUI.style.opacity = '0';
+    pondUI.style.pointerEvents = 'none';
+    statusText.textContent = scrollProgress > .18 ? 'RACE IN PROGRESS' : 'LOOK UP';
+  }
+}
+window.addEventListener('scroll', readScrollProgress, { passive: true });
+readScrollProgress();
 const weatherModes=[{name:'CLEAR SKIES',rain:0,fog:.012},{name:'MISTY',rain:0,fog:.032},{name:'LIGHT RAIN',rain:.5,fog:.018},{name:'RAIN SHOWER',rain:1,fog:.025}];
 const timeModes=[{name:'DAYLIGHT',day:1,sky:'#8eacb1',fog:'#a6c2bd',sun:'#ffe8bd'},{name:'GOLDEN HOUR',day:.82,sky:'#d4a17a',fog:'#d5b69a',sun:'#ffbd78'},{name:'BLUE HOUR',day:.38,sky:'#334d66',fog:'#536c78',sun:'#a5c9dc'},{name:'NIGHT',day:.13,sky:'#101e32',fog:'#263b4a',sun:'#91a9d9'}];
 function applyEnvironment(){
@@ -424,11 +468,7 @@ document.addEventListener('pointerdown',()=>{if(!soundOn)soundNote.classList.add
 
 let screenShakeUntil=0, cameraMode='intro', transitionStart=0, transitionFrom=null;
 function enterPond(){
-  if(entered)return;entered=true;transitionStart=performance.now();transitionFrom={pos:camera.position.clone(),target:new THREE.Vector3(0,0,-15)};
-  cameraMode='transition';intro.classList.add('is-leaving');pondUI.classList.remove('is-hidden');pondUI.style.opacity='0';
-  setTimeout(()=>{pondUI.style.opacity='1';statusText.textContent='POND IN VIEW';},850);
-  setTimeout(()=>{pondUI.style.pointerEvents='auto';},1000);
-  if(soundOn)startAudio();
+  window.scrollTo({top: Math.round((document.documentElement.scrollHeight - innerHeight) * .3), behavior: reduceMotion ? 'auto' : 'smooth'});
 }
 enterButton.addEventListener('click',enterPond);
 
@@ -491,7 +531,9 @@ function animate(){
   waterUniforms.uTime.value=elapsed;
   if(waterUniforms.uRipple.value>0.06)waterUniforms.uRipple.value*=Math.pow(.15,dt);else waterUniforms.uRipple.value=0;
   racers.forEach((r,i)=>{
-    r.phase+=dt*r.speed;
+    const raceActive = scrollProgress > .16;
+    r.mesh.visible = raceActive;
+    if(raceActive) r.phase+=dt*r.speed;
     const a=r.phase;
     r.mesh.position.set(Math.cos(a)*r.radiusX,.02, -19+Math.sin(a)*r.radiusZ);
     r.mesh.rotation.y=-Math.atan2(Math.cos(a)*r.radiusZ,-Math.sin(a)*r.radiusX);
@@ -534,37 +576,35 @@ function animate(){
   const mote= moteGeo.attributes.position.array;
   for(let i=0;i<95;i++)mote[i*3+1]=1.2+Math.sin(elapsed*.8+i)*1.6;
   moteGeo.attributes.position.needsUpdate=true;
-  if(cameraMode==='transition'){
-    const t=Math.min(1,(performance.now()-transitionStart)/(reduceMotion?1200:4200));
-    const s=smoothstep(t);
-    const from=transitionFrom.pos;
-    camera.position.set(THREE.MathUtils.lerp(from.x,0,s),THREE.MathUtils.lerp(from.y,17.5,s),THREE.MathUtils.lerp(from.z,0,s));
-    const target=new THREE.Vector3(0,0,0);
-    camera.lookAt(target);
-    camera.fov=THREE.MathUtils.lerp(48,43,s);camera.updateProjectionMatrix();
-    if(t>=1){cameraMode='pond';showToast('WELCOME TO THE POND');}
-  } else if(cameraMode==='pond'){
-    const shake=(!reduceMotion&&performance.now()<screenShakeUntil)?(Math.random()-.5)*.025:0;
-    const targetY=17.5;
-    camera.position.x+=(0-camera.position.x)*dt*.8;
-    camera.position.y+=(targetY-camera.position.y)*dt*.8;
-    camera.position.z+=(0-camera.position.z)*dt*.8;
-    camera.position.x+=shake;camera.lookAt(0,0,0);
-  } else {
-    camera.position.x=Math.sin(elapsed*.09)*.45;
-    camera.position.y=10+Math.sin(elapsed*.16)*.3;
-    camera.lookAt(0,0,-17);
-  }
+  // Scroll is the timeline: sky -> circuit/race -> overhead pond. Each pose blends into the next.
+  const keyframes = [
+    { p: 0,    pos: new THREE.Vector3(0, 2, 8),    target: new THREE.Vector3(0, 17, -22), fov: 48 },
+    { p: .18,  pos: new THREE.Vector3(0, 5, 5),    target: new THREE.Vector3(0, 0, -19),  fov: 55 },
+    { p: .42,  pos: new THREE.Vector3(0, 3.4, -7), target: new THREE.Vector3(0, 0, -19),  fov: 61 },
+    { p: .64,  pos: new THREE.Vector3(0, 9, -4),   target: new THREE.Vector3(0, 0, -2),   fov: 53 },
+    { p: 1,    pos: new THREE.Vector3(0, 17.5, 0), target: new THREE.Vector3(0, 0, 0),    fov: 43 }
+  ];
+  let a=keyframes[0], b=keyframes[keyframes.length-1];
+  for(let i=0;i<keyframes.length-1;i++){if(scrollProgress>=keyframes[i].p&&scrollProgress<=keyframes[i+1].p){a=keyframes[i];b=keyframes[i+1];break;}}
+  const rawT=THREE.MathUtils.clamp((scrollProgress-a.p)/Math.max(.001,b.p-a.p),0,1);
+  const s=reduceMotion?rawT:smoothstep(rawT);
+  camera.position.lerpVectors(a.pos,b.pos,s);
+  const lookTarget=new THREE.Vector3().lerpVectors(a.target,b.target,s);
+  const shake=(!reduceMotion&&scrollProgress>.16&&scrollProgress<.63&&performance.now()<screenShakeUntil)?(Math.random()-.5)*.025:0;
+  camera.position.x+=shake;
+  camera.lookAt(lookTarget);
+  camera.fov=THREE.MathUtils.lerp(a.fov,b.fov,s);camera.updateProjectionMatrix();
   renderer.render(scene,camera);
 }
 animate();
 
 function resize(){
   camera.aspect=innerWidth/innerHeight;
-  camera.fov=innerWidth<700?(entered?49:57):(entered?43:48);
-  camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));
+  camera.fov=innerWidth<700?(scrollProgress>.66?49:scrollProgress>.16?57:48):(scrollProgress>.66?43:scrollProgress>.16?55:48);
+  camera.updateProjectionMatrix();renderer.setSize(Math.max(320,Math.floor(innerWidth/3)),Math.max(180,Math.floor(innerHeight/3)),false);
 }
 addEventListener('resize',resize);
 applyEnvironment();
 if(reduceMotionQuery.matches)document.querySelector('#motionButton').setAttribute('aria-pressed','true');
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){panel.classList.remove('is-open');panel.setAttribute('aria-hidden','true');}});
+window.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='PageDown'){if(scrollProgress<.99){e.preventDefault();window.scrollBy({top:innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}if(e.key==='ArrowUp'||e.key==='PageUp'){if(scrollProgress>.01){e.preventDefault();window.scrollBy({top:-innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}});
