@@ -817,7 +817,13 @@ function animate(){
     }
     const a=r.phase;
     r.mesh.position.set(Math.cos(a)*r.radiusX,.02, -19+Math.sin(a)*r.radiusZ);
-    r.mesh.rotation.y=-Math.atan2(Math.cos(a)*r.radiusZ,-Math.sin(a)*r.radiusX);
+    // The car's nose points along local -Z. Aim it at the ellipse tangent,
+    // accounting for the direction the phase is travelling.
+    const direction = (driveMode && i===0 && (driveKeys.has('a')||driveKeys.has('arrowleft'))) ? -1 :
+      (driveMode && i===0 && (driveKeys.has('d')||driveKeys.has('arrowright'))) ? 1 : 1;
+    const tangentX = -Math.sin(a)*r.radiusX*direction;
+    const tangentZ = Math.cos(a)*r.radiusZ*direction;
+    r.mesh.rotation.y = Math.atan2(-tangentX,-tangentZ);
   });
   pads.forEach(p=>{p.group.position.y=Math.sin(elapsed*.9+p.phase)*.035; p.group.rotation.y=Math.sin(elapsed*.4+p.phase)*.035;});
   koi.forEach((fish,i)=>{
@@ -826,9 +832,9 @@ function animate(){
     const dist=Math.hypot(g.position.x-px,g.position.z-pz);
     if(pointerActive&&entered&&dist<3.8){
       // Koi scatter decisively from the cursor, then circle back once it leaves.
-      fish.scare=Math.min(1,fish.scare+dt*3.8);
+      fish.scare=Math.min(1,fish.scare+dt*5.5);
       const dx=g.position.x-px,dz=g.position.z-pz,len=Math.max(.001,Math.hypot(dx,dz));
-      const escape=3.2+(3.8-dist)*.9;
+      const escape=4.2+(3.8-dist)*1.15;
       fish.target.set(
         THREE.MathUtils.clamp(g.position.x+dx/len*escape,-pondRadiusX+.7,pondRadiusX-.7),
         0,
@@ -845,11 +851,14 @@ function animate(){
       }
     }
     const target=new THREE.Vector3(fish.target.x,-.035,fish.target.z);
-    g.position.lerp(target,Math.min(1,dt*fish.speed*(1+fish.scare*3)));
+    // Accelerate strongly when startled and keep ordinary cruising lively.
+    g.position.lerp(target,Math.min(1,dt*(fish.speed*1.35+fish.scare*2.8)));
     const dx=fish.target.x-g.position.x,dz=fish.target.z-g.position.z;
-    if(Math.hypot(dx,dz)>.05)g.rotation.y=Math.atan2(dx,dz);
+    // Fish noses point toward local -Z, so use the inverse tangent angle;
+    // this makes the head lead and the tail trail instead of swimming backwards.
+    if(Math.hypot(dx,dz)>.05)g.rotation.y=Math.atan2(-dx,-dz);
     g.rotation.z=Math.sin(elapsed*3+fish.phase)*.035*(1+fish.scare);
-    fish.tail.rotation.y=Math.sin(elapsed*10+fish.phase)*.32;
+    fish.tail.rotation.y=Math.sin(elapsed*13+fish.phase)*(.28+fish.scare*.28);
   });
   frogs.forEach(f=>{
     f.phase+=dt;
