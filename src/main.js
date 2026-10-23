@@ -115,10 +115,23 @@ function makePixelPine(x, z, scale = 1) {
   scene.add(tree);
   return tree;
 }
+const swayingTrees=[];
 for (let i=0;i<42;i++) {
   const side = i%2 ? 1 : -1;
-  makePixelPine(side*(11+(i%5)*2.2), -7-(i%21)*2.45, .58+(i%4)*.12);
+  const tree=makePixelPine(side*(11+(i%5)*2.2), -7-(i%21)*2.45, .58+(i%4)*.12);
+  swayingTrees.push({tree,phase:i*.73,amount:.008+(i%4)*.003});
 }
+// A blocky moon and a field of crisp, square stars, dimmed during daytime.
+const nightSky=new THREE.Group();scene.add(nightSky);
+const moon=new THREE.Mesh(new THREE.BoxGeometry(1.65,1.65,.22),new THREE.MeshBasicMaterial({color:0xf1e6c4,transparent:true,opacity:.92}));
+moon.position.set(13,18,-29);nightSky.add(moon);
+const moonCut=new THREE.Mesh(new THREE.BoxGeometry(1.25,1.25,.25),new THREE.MeshBasicMaterial({color:0x33485b}));
+moonCut.position.set(13.55,18.3,-28.82);nightSky.add(moonCut);
+const starGeo=new THREE.BufferGeometry(), starPos=[];
+for(let i=0;i<110;i++){starPos.push((Math.random()-.5)*64,8+Math.random()*22,-25-Math.random()*35);}
+starGeo.setAttribute('position',new THREE.Float32BufferAttribute(starPos,3));
+const starMat=new THREE.PointsMaterial({color:0xf5edce,size:.16,sizeAttenuation:false,transparent:true,opacity:0});
+const stars=new THREE.Points(starGeo,starMat);nightSky.add(stars);
 
 
 const bridge = new THREE.Group(); scene.add(bridge);
@@ -500,6 +513,8 @@ function applyEnvironment(){
   sun.color.set(t.sun);sun.intensity=3.2*t.day;hemi.intensity=.45+1.65*t.day;fill.intensity=.25+1.0*t.day;
   rain.visible=w.rain>0;rainMaterial.opacity=.1+w.rain*.55;
   motes.material.opacity=timeIndex===3?.72:timeIndex===2?.18:0;
+  stars.material.opacity=[0,.08,.55,.95][timeIndex];
+  moon.visible=timeIndex>=2;moonCut.visible=timeIndex>=2;
   weatherLabel.textContent=w.name;clockLabel.textContent=t.name;
   showToast(t.name+' · '+w.name);
 }
@@ -618,15 +633,22 @@ document.querySelector('#closePanel').addEventListener('click',()=>{panel.classL
 document.querySelector('#weatherButton').addEventListener('click',()=>{weatherIndex=(weatherIndex+1)%weatherModes.length;applyEnvironment();});
 document.querySelector('#timeButton').addEventListener('click',()=>{timeIndex=(timeIndex+1)%timeModes.length;applyEnvironment();});
 document.querySelector('#motionButton').addEventListener('click',event=>{reduceMotion=!reduceMotion;event.currentTarget.setAttribute('aria-pressed',String(reduceMotion));event.currentTarget.innerHTML=reduceMotion?'MOTION REDUCED <span>●</span>':'REDUCE MOTION <span>○</span>';showToast(reduceMotion?'REDUCED MOTION ON':'FULL MOTION ON');});
+document.querySelector('#zoomInButton').addEventListener('click',()=>{camera.zoom=Math.min(1.65,camera.zoom+.12);camera.updateProjectionMatrix();showToast('VIEW ZOOMED IN');});
+document.querySelector('#zoomOutButton').addEventListener('click',()=>{camera.zoom=Math.max(.72,camera.zoom-.12);camera.updateProjectionMatrix();showToast('VIEW ZOOMED OUT');});
+document.querySelector('#resetViewButton').addEventListener('click',()=>{camera.zoom=1;camera.updateProjectionMatrix();window.scrollTo({top:0,behavior:reduceMotion?'auto':'smooth'});showToast('WORLD VIEW RESET');});
+
 
 // The camera starts by the racing circuit, then glides to a top-down pond view.
 const clock=new THREE.Clock();
 let elapsed=0;
+let rainSplashTimer=.15;
 function smoothstep(t){return t*t*(3-2*t);}
 function animate(){
   requestAnimationFrame(animate);
   const dt=Math.min(clock.getDelta(),.04);elapsed+=dt;
   waterUniforms.uTime.value=elapsed;
+  swayingTrees.forEach(({tree,phase,amount})=>{tree.rotation.z=Math.sin(elapsed*.7+phase)*amount;tree.rotation.x=Math.cos(elapsed*.53+phase)*amount*.55;});
+  stars.visible=timeIndex>=1;stars.rotation.z=Math.sin(elapsed*.025)*.012;
   if(waterUniforms.uRipple.value>0.06)waterUniforms.uRipple.value*=Math.pow(.15,dt);else waterUniforms.uRipple.value=0;
   exhaustPixels.forEach((fx,i)=>{
     const racer=racers[i], car=racer.mesh;
@@ -697,7 +719,11 @@ function animate(){
     }
   });
   const pos=rainGeometry.attributes.position.array;
-  if(rain.visible){for(let i=0;i<rainCount;i++){pos[i*3+1]-=dt*(7+weatherModes[weatherIndex].rain*9);if(pos[i*3+1]<-.2){pos[i*3+1]=12+Math.random()*8;pos[i*3]=(Math.random()-.5)*45;pos[i*3+2]=(Math.random()-.5)*45;}}rainGeometry.attributes.position.needsUpdate=true;}
+  if(rain.visible){for(let i=0;i<rainCount;i++){pos[i*3+1]-=dt*(7+weatherModes[weatherIndex].rain*9);if(pos[i*3+1]<-.2){pos[i*3+1]=12+Math.random()*8;pos[i*3]=(Math.random()-.5)*45;pos[i*3+2]=(Math.random()-.5)*45;}}rainGeometry.attributes.position.needsUpdate=true;
+    // Sparse square splash rings only over the pond, to avoid a costly particle storm.
+    rainSplashTimer-=dt;
+    if(scrollProgress>.62&&weatherModes[weatherIndex].rain>.2&&rainSplashTimer<=0){const x=(Math.random()-.5)*pondRadiusX*1.7,z=(Math.random()-.5)*pondRadiusZ*1.7;spawnSplash(x,z);rainSplashTimer=.22+Math.random()*.28;}
+  }
   const mote= moteGeo.attributes.position.array;
   for(let i=0;i<95;i++)mote[i*3+1]=1.2+Math.sin(elapsed*.8+i)*1.6;
   moteGeo.attributes.position.needsUpdate=true;
