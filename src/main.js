@@ -834,6 +834,7 @@ window.addEventListener('keydown',e=>{
     if(driveMode||freeCameraMode){driveKeys.add(key);e.preventDefault();}
   }
   if(e.key==='Escape'){
+    if(photoMode){setPhotoMode(false);return;}
     panel.classList.remove('is-open');panel.setAttribute('aria-hidden','true');
     followedFrog=null;driveMode=false;freeCameraMode=false;driveKeys.clear();
     document.querySelector('#driveModeButton').textContent='DRIVE';document.querySelector('#driveModeButton').setAttribute('aria-pressed','false');
@@ -847,3 +848,18 @@ window.addEventListener('keydown',e=>{
   if(e.key==='ArrowDown'||e.key==='PageDown'){if(scrollProgress<.99){e.preventDefault();window.scrollBy({top:innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}
   if(e.key==='ArrowUp'||e.key==='PageUp'){if(scrollProgress>.01){e.preventDefault();window.scrollBy({top:-innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}
 });
+
+
+// Photo mode: preserve the live 3D scene while clearing every interface layer.
+const photoModeButton = document.querySelector('#photoModeButton');
+const photoExit = document.querySelector('#photoExit');
+let photoMode = false;
+function setPhotoMode(enabled) {
+  photoMode = enabled;
+  document.body.classList.toggle('photo-mode', enabled);
+  photoModeButton?.setAttribute('aria-pressed', String(enabled));
+  if (photoExit) photoExit.hidden = !enabled;
+  if (photoModeButton) photoModeButton.textContent = enabled ? 'EXIT PHOTO' : 'PHOTO';
+  if (enabled) showToast('PHOTO MODE · ESC TO RETURN');
+}
+photoModeButton?.addEventListener('click', () => setPhotoMode(!photoMode));
