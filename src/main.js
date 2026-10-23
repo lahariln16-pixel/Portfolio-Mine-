@@ -15,8 +15,9 @@ const panel = document.querySelector('#sectionPanel');
 const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#d98cae');
-scene.fog = new THREE.Fog('#c78aa9', 0.009);
+scene.background = new THREE.Color('#c8d8cf');
+// Dense meadow mist hides the far side of the circuit and lets only a slice of track emerge.
+scene.fog = new THREE.Fog('#c8d8cf', 10, 27);
 const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 250);
 camera.position.set(0, 2, 8);
 camera.lookAt(0, 17, -22);
@@ -446,16 +447,24 @@ function makeKoi(index, x, z) {
   const white = index % 3 === 0 ? mats.koiBlack : mats.koiWhite;
   const patchMat = index % 2 ? mats.koiOrange : mats.koiBlack;
   // Rectangular voxel body, separate colour patches, and a hinged pixel tail.
-  const body = new THREE.Mesh(new THREE.BoxGeometry(.43,.25,.92), white);
-  body.position.y=.04; g.add(body);
-  const patch = new THREE.Mesh(new THREE.BoxGeometry(.34,.13,.29), patchMat);
-  patch.position.set(0,.17,-.12); g.add(patch);
+  // A gently tapered, faceted voxel body reads as a fish rather than a plain box.
+  const body = new THREE.Mesh(new THREE.DodecahedronGeometry(.5,0), white);
+  body.scale.set(.43,.25,1.0); body.position.y=.035; g.add(body);
+  // Raised orange/black markings follow the curved back in separate pixel-like patches.
+  const patch = new THREE.Mesh(new THREE.BoxGeometry(.29,.09,.28), patchMat);
+  patch.position.set(0,.205,-.12); g.add(patch);
+  const patchRear = new THREE.Mesh(new THREE.BoxGeometry(.22,.075,.17), patchMat);
+  patchRear.position.set(0,.16,.22); g.add(patchRear);
   const tailJoint = new THREE.Group();
-  tailJoint.position.set(0,.03,.48);g.add(tailJoint);
-  const tail = new THREE.Mesh(new THREE.BoxGeometry(.28,.09,.34), patchMat);
-  tail.position.z=.16;tailJoint.add(tail);
-  const dorsal = new THREE.Mesh(new THREE.BoxGeometry(.13,.11,.34),patchMat);
-  dorsal.position.set(0,.17,.02);g.add(dorsal);
+  tailJoint.position.set(0,.02,.43);g.add(tailJoint);
+  const tailUpper = new THREE.Mesh(new THREE.BoxGeometry(.28,.07,.24), patchMat);
+  tailUpper.position.set(0,.08,.17);tailUpper.rotation.x=-.18;tailJoint.add(tailUpper);
+  const tailLower = new THREE.Mesh(new THREE.BoxGeometry(.28,.07,.24), patchMat);
+  tailLower.position.set(0,-.07,.17);tailLower.rotation.x=.18;tailJoint.add(tailLower);
+  const dorsal = new THREE.Mesh(new THREE.BoxGeometry(.12,.11,.3),patchMat);
+  dorsal.position.set(0,.22,.015);g.add(dorsal);
+  const snout = new THREE.Mesh(new THREE.BoxGeometry(.23,.13,.16), white);
+  snout.position.set(0,.015,-.39);g.add(snout);
   for (const side of [-1,1]) {
     const fin = new THREE.Mesh(new THREE.BoxGeometry(.18,.055,.28), index%2?mats.koiWhite:mats.koiOrange);
     fin.position.set(side*.24,-.04,.08); fin.rotation.y=side*.22; g.add(fin);
@@ -463,7 +472,7 @@ function makeKoi(index, x, z) {
   const eyeMat = new THREE.MeshBasicMaterial({color:0x101817});
   for (const side of [-1,1]) {
     const eye = new THREE.Mesh(new THREE.BoxGeometry(.055,.055,.055),eyeMat);
-    eye.position.set(side*.17,.1,-.32); g.add(eye);
+    eye.position.set(side*.145,.105,-.36); g.add(eye);
   }
   g.position.set(x,-.035,z); pondGroup.add(g);
   koi.push({group:g,tail:tailJoint,home:new THREE.Vector3(x,0,z),target:new THREE.Vector3(x,0,z),phase:Math.random()*6,speed:.45+Math.random()*.38,scare:0,index});
@@ -583,7 +592,12 @@ const timeModes=[{name:'DAYLIGHT',day:1,sky:'#8eacb1',fog:'#a6c2bd',sun:'#ffe8bd
 function applyEnvironment(){
   const w=weatherModes[weatherIndex], t=timeModes[timeIndex];
   waterUniforms.uRain.value=w.rain; waterUniforms.uDay.value=t.day;
-  scene.background.set(t.sky);scene.fog.color.set(t.fog);scene.fog.density=w.fog;
+  // Keep the fog and sky matched so distant geometry fades seamlessly into mist.
+  const mistColor = scrollProgress > .62 ? '#c8d8cf' : t.fog;
+  scene.background.set(scrollProgress > .62 ? mistColor : t.sky);
+  scene.fog.color.set(scrollProgress > .62 ? mistColor : t.fog);
+  scene.fog.near = scrollProgress > .62 ? 5.5 : 8;
+  scene.fog.far = scrollProgress > .62 ? 17 : 25;
   sun.color.set(t.sun);sun.intensity=3.2*t.day;hemi.intensity=.45+1.65*t.day;fill.intensity=.25+1.0*t.day;
   rain.visible=w.rain>0;rainMaterial.opacity=.1+w.rain*.55;
   motes.material.opacity=timeIndex===3?.72:timeIndex===2?.18:0;
@@ -815,7 +829,7 @@ function animate(){
     const dx=fish.target.x-g.position.x,dz=fish.target.z-g.position.z;
     if(Math.hypot(dx,dz)>.05)g.rotation.y=Math.atan2(dx,dz);
     g.rotation.z=Math.sin(elapsed*3+fish.phase)*.035*(1+fish.scare);
-    g.children[2].rotation.z=Math.sin(elapsed*10+fish.phase)*.24;
+    g.children[2].rotation.y=Math.sin(elapsed*10+fish.phase)*.32;
   });
   frogs.forEach(f=>{
     f.phase+=dt;
@@ -885,9 +899,10 @@ function animate(){
     { p: .27,  pos: new THREE.Vector3(17, 4.8, -12),   target: new THREE.Vector3(0, .5, -19), fov: 64 },
     { p: .43,  pos: new THREE.Vector3(-14, 5.8, -21),  target: new THREE.Vector3(0, .4, -19), fov: 60 },
     { p: .57,  pos: new THREE.Vector3(-9, 10, -1),     target: new THREE.Vector3(0, .2, -8),  fov: 55 },
-    { p: .72,  pos: new THREE.Vector3(13, 13, 7),      target: new THREE.Vector3(0, 0, 0),    fov: 49 },
-    { p: .86,  pos: new THREE.Vector3(9, 8, 13),       target: new THREE.Vector3(0, 0, 0),    fov: 46 },
-    { p: 1,    pos: new THREE.Vector3(4, 20, 8),       target: new THREE.Vector3(0, 0, 0),    fov: 42 }
+    { p: .72,  pos: new THREE.Vector3(8, 8, 10),        target: new THREE.Vector3(0, 0, 0),    fov: 46 },
+    // Dive into a close overhead pond composition; the circuit is left behind in the fog.
+    { p: .86,  pos: new THREE.Vector3(0, 15.5, 0.8),  target: new THREE.Vector3(0, 0, 0),    fov: 38 },
+    { p: 1,    pos: new THREE.Vector3(0, 15.5, 0.8),  target: new THREE.Vector3(0, 0, 0),    fov: 38 }
   ];
   let a=keyframes[0], b=keyframes[keyframes.length-1];
   for(let i=0;i<keyframes.length-1;i++){if(scrollProgress>=keyframes[i].p&&scrollProgress<=keyframes[i+1].p){a=keyframes[i];b=keyframes[i+1];break;}}
