@@ -455,7 +455,7 @@ document.addEventListener('pointerdown',()=>{if(!soundOn)soundNote.classList.add
 
 let screenShakeUntil=0, cameraMode='intro', transitionStart=0, transitionFrom=null;
 function enterPond(){
-  window.scrollTo({top: Math.round((document.documentElement.scrollHeight - innerHeight) * .72), behavior: reduceMotion ? 'auto' : 'smooth'});
+  window.scrollTo({top: Math.round((document.documentElement.scrollHeight - innerHeight) * .3), behavior: reduceMotion ? 'auto' : 'smooth'});
 }
 enterButton.addEventListener('click',enterPond);
 
