@@ -198,13 +198,49 @@ function makeCar(color, scale = 1) {
     hub.position.set(x + (x < 0 ? -.015 : .015), .25, z); g.add(hub);
   }
   const lightMat = new THREE.MeshBasicMaterial({ color: 0xffe9c0 });
+  const tailMat = new THREE.MeshBasicMaterial({ color: 0xff4e68 });
   for (const x of [-.48, .48]) {
     const light = new THREE.Mesh(new THREE.BoxGeometry(.25, .07, .05), lightMat);
     light.position.set(x, .43, -1.49); g.add(light);
+    const tailLight = new THREE.Mesh(new THREE.BoxGeometry(.23,.075,.05),tailMat);
+    tailLight.position.set(x,.43,1.47);g.add(tailLight);
   }
+  const underglow = new THREE.Mesh(new THREE.BoxGeometry(1.1,.025,1.8),new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:.32}));
+  underglow.position.y=.18;g.add(underglow);
   g.scale.setScalar(scale);
   return g;
 }
+// Pixel racing polish: blocky track markers, roadside signs, and animated exhaust pixels.
+const raceDecor = new THREE.Group();
+scene.add(raceDecor);
+const trackDashMat = new THREE.MeshBasicMaterial({color:0xf3d9a0});
+const trackGlowMat = new THREE.MeshBasicMaterial({color:0x6de8e2});
+for(let i=0;i<48;i++){
+  const a=i/48*Math.PI*2;
+  const dash=new THREE.Mesh(new THREE.BoxGeometry(.16,.035,.55),trackDashMat);
+  dash.position.set(Math.cos(a)*10.15,.025,-19+Math.sin(a)*4.15);
+  dash.rotation.y=-a; raceDecor.add(dash);
+}
+for(let i=0;i<10;i++){
+  const side=i%2===0?-1:1, z=-31+i*2.65;
+  const post=new THREE.Mesh(new THREE.BoxGeometry(.16,1.05,.16),mat('#73506f'));
+  post.position.set(side*(11.6+(i%3)*.35),.1,z);raceDecor.add(post);
+  const board=new THREE.Mesh(new THREE.BoxGeometry(.95,.42,.12),new THREE.MeshStandardMaterial({color:i%2?0x3e7778:0xb75d80,emissive:i%2?0x174a4c:0x4d1d36,emissiveIntensity:.65}));
+  board.position.set(post.position.x,.72,z);raceDecor.add(board);
+  const stripe=new THREE.Mesh(new THREE.BoxGeometry(.58,.055,.14),trackGlowMat);
+  stripe.position.set(post.position.x,.74,z-.015);raceDecor.add(stripe);
+}
+const exhaustPixels=[];
+for(let i=0;i<4;i++){
+  const g=new THREE.Group();
+  const puffs=[];
+  for(let j=0;j<7;j++){
+    const puff=new THREE.Mesh(new THREE.BoxGeometry(.12+j*.025,.1+j*.018,.12+j*.025),new THREE.MeshBasicMaterial({color:j%2?0x8da9b1:0xe1b8a5,transparent:true,opacity:.55}));
+    g.add(puff);puffs.push(puff);
+  }
+  scene.add(g);exhaustPixels.push({group:g,puffs,phase:i*1.7});
+}
+
 const carColors = ['#e8e5d9', '#d94c35', '#d7a64f', '#263f49'];
 for (let i = 0; i < 4; i++) {
   const car = makeCar(carColors[i], i === 3 ? .86 : .95);
@@ -592,6 +628,18 @@ function animate(){
   const dt=Math.min(clock.getDelta(),.04);elapsed+=dt;
   waterUniforms.uTime.value=elapsed;
   if(waterUniforms.uRipple.value>0.06)waterUniforms.uRipple.value*=Math.pow(.15,dt);else waterUniforms.uRipple.value=0;
+  exhaustPixels.forEach((fx,i)=>{
+    const racer=racers[i], car=racer.mesh;
+    fx.group.visible=scrollProgress>.16;
+    fx.group.position.set(car.position.x,car.position.y+.24,car.position.z+1.55);
+    fx.group.rotation.y=car.rotation.y;
+    fx.puffs.forEach((p,j)=>{
+      const t=(elapsed*1.7+fx.phase+j*.19)%1;
+      p.position.set(Math.sin(j*2.4+elapsed*2)*.08,t*.7,.12+t*.75);
+      p.scale.setScalar(.55+t*.85);
+      p.material.opacity=(1-t)*(.38+.18*Math.sin(elapsed*8+j));
+    });
+  });
   racers.forEach((r,i)=>{
     const raceActive = scrollProgress > .16;
     r.mesh.visible = raceActive;
