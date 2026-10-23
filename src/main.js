@@ -275,28 +275,33 @@ for (let i = 0; i < 68; i++) {
   stone.scale.y = .45; pondGroup.add(stone);
 }
 
-// Lily pads are flat, notched discs with a small vein detail.
+// Lily pads use chunky polygon edges and tiny square pixels instead of smooth discs.
 const pads = [];
 function createLilyPad(index, x, z) {
   const g = new THREE.Group();
+  const points = [
+    [-.82,-.08],[-.72,-.42],[-.43,-.69],[-.12,-.78],[.2,-.72],
+    [.48,-.54],[.7,-.26],[.82,.02],[.69,.34],[.45,.58],[.12,.76],
+    [-.22,.72],[-.52,.53],[-.75,.25],[-.82,-.08]
+  ];
+  // The V-shaped gap gives each pad a recognizable pixel-art notch.
   const shape = new THREE.Shape();
-  const r = .88;
-  shape.moveTo(0, 0);
-  for (let i = 0; i <= 48; i++) {
-    const a = i / 48 * Math.PI * 2;
-    const notch = (a > 5.55 || a < .28) ? .55 : 1;
-    const rr = r * notch;
-    const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
-    if (i === 0) shape.moveTo(px, py); else shape.lineTo(px, py);
-  }
-  shape.closePath();
-  const geo = new THREE.ShapeGeometry(shape, 18);
-  const mesh = new THREE.Mesh(geo, index % 2 ? mats.lilyLight : mats.lily);
-  mesh.rotation.x = -Math.PI / 2; mesh.position.y = .055; g.add(mesh);
-  const vein = new THREE.Mesh(new THREE.CylinderGeometry(.008, .008, .62, 5), mat('#a1bf77'));
-  vein.rotation.z = Math.PI / 2; vein.rotation.x = Math.PI / 2; vein.position.set(.13, .064, .02); g.add(vein);
-  g.position.set(x, 0, z); pondGroup.add(g);
-  const pad = { group: g, x, z, phase: Math.random() * 6, index };
+  points.forEach(([px,pz],i)=>i===0?shape.moveTo(px,pz):shape.lineTo(px,pz));
+  shape.lineTo(-.34,-.02); shape.lineTo(-.12,-.12); shape.lineTo(-.82,-.08);
+  const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), index % 2 ? mats.lilyLight : mats.lily);
+  mesh.rotation.x = -Math.PI/2; mesh.position.y=.055; g.add(mesh);
+  // Raised edge pixels and a blocky central vein.
+  const edgeMat = mat('#355f43');
+  [[-.48,-.52],[.02,-.68],[.48,-.43],[.65,.12],[.28,.55],[-.35,.48],[-.65,.18]].forEach(([px,pz],i)=>{
+    const pixel = new THREE.Mesh(new THREE.BoxGeometry(.16,.035,.12), i%2?mats.lilyLight:edgeMat);
+    pixel.position.set(px,.067,pz); g.add(pixel);
+  });
+  const vein = new THREE.Mesh(new THREE.BoxGeometry(.42,.018,.045), mat('#b0c878'));
+  vein.position.set(.12,.071,.04); vein.rotation.y=-.22; g.add(vein);
+  const veinBranch = new THREE.Mesh(new THREE.BoxGeometry(.2,.018,.035), mat('#a1bf77'));
+  veinBranch.position.set(-.04,.072,-.12); veinBranch.rotation.y=.5; g.add(veinBranch);
+  g.position.set(x,0,z); pondGroup.add(g);
+  const pad = {group:g,x,z,phase:Math.random()*6,index};
   pads.push(pad);
   return pad;
 }
@@ -602,8 +607,11 @@ function animate(){
       const t=Math.min(1,f.jump.t/f.jump.duration),s=smoothstep(t);
       f.group.position.lerpVectors(f.jump.from,f.jump.to,s);
       f.group.position.y+=Math.sin(t*Math.PI)*1.05;
-      f.group.rotation.x=Math.sin(t*Math.PI)*.12;
-      if(t>=1){f.padIndex=f.jump.destination;f.group.position.copy(f.jump.to);f.jump=null;spawnSplash(f.group.position.x,f.group.position.z);showToast('A NEW IDEA IS WAITING.');}
+      f.group.rotation.x=Math.sin(t*Math.PI)*.18;
+      // A tiny squash on take-off and landing sells the arcade-like leap.
+      const squash = Math.sin(t*Math.PI);
+      f.group.scale.set(1-.12*squash,1+.2*squash,1-.12*squash);
+      if(t>=1){f.padIndex=f.jump.destination;f.group.position.copy(f.jump.to);f.group.scale.set(1,1,1);f.group.rotation.x=0;f.jump=null;spawnSplash(f.group.position.x,f.group.position.z);showToast('A NEW IDEA IS WAITING.');}
     }
   });
   const pos=rainGeometry.attributes.position.array;
