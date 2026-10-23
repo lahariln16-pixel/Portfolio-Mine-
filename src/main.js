@@ -357,22 +357,33 @@ const waterMaterial = new THREE.ShaderMaterial({
   fragmentShader: `
     varying vec2 vUv;
     uniform float uTime; uniform vec2 uPointer; uniform float uRipple; uniform float uRain; uniform float uDay; uniform vec3 uSunDir;
+    float hash21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
     void main(){
-      vec2 p=vUv;
-      // Coarse grid quantization gives the pond visible square pixels.
-      vec2 cell=floor(p*64.0)/64.0;
-      float wave=sin(cell.x*32.0+floor(uTime*4.0)*.12)*cos(cell.y*28.0-floor(uTime*3.0)*.12);
-      float d=distance(cell,uPointer);
-      float rings=sin(floor(d*54.0)*6.28318-floor(uTime*5.0))*exp(-d*10.0)*uRipple;
-      float rainWave=step(.84,fract(cell.x*91.0+cell.y*57.0-floor(uTime*5.0)*.13))*uRain;
-      float shimmer=wave*.055+rings*.16+rainWave*.12;
-      vec3 deep=vec3(.035,.22,.22); vec3 shallow=vec3(.31,.52,.40);
-      float band=floor(clamp(cell.y+shimmer,0.0,1.0)*6.0)/6.0;
-      vec3 col=mix(deep,shallow,band);
-      float skyReflection=step(.88,fract(sin(floor(cell.x*18.0)+floor(cell.y*13.0)+floor(uTime*.5))*43758.5));
-      col=mix(col,vec3(.76,.81,.64),skyReflection*(.10+.22*uDay));
-      float edge=min(min(p.x,1.0-p.x),min(p.y,1.0-p.y));
-      col=mix(vec3(.10,.20,.17),col,smoothstep(0.0,.055,edge));
+      vec2 uv=vUv;
+      vec2 cell=floor(uv*vec2(112.0,72.0));
+      vec2 p=(cell+.5)/vec2(112.0,72.0);
+      float time=floor(uTime*5.0)*.2;
+      float lane=floor(p.y*42.0);
+      float seed=hash21(vec2(lane,7.0));
+      float flow=p.x*15.0+time*(.22+seed*.25)+lane*1.73;
+      float seg=floor(flow);
+      float segSeed=hash21(vec2(seg,lane));
+      float along=fract(flow);
+      float wave=(1.0-smoothstep(.62,.94,along))*smoothstep(.02,.16,along)*step(.24,segSeed)*step(.27,hash21(vec2(lane,19.0)));
+      float sparkle=step(.94,hash21(floor(p*vec2(37.0,29.0))+floor(time*1.5)));
+      float d=distance(p,uPointer);
+      float rings=(1.0-smoothstep(.04,.15,abs(fract(d*25.0-time*.55)-.5)))*exp(-d*5.0)*uRipple;
+      float rainRing=(1.0-smoothstep(.04,.18,abs(fract(d*47.0-time*1.8)-.5)))*step(.965,hash21(floor(p*vec2(61.0,43.0))))*uRain;
+      vec3 deep=vec3(.035,.19,.19), mid=vec3(.075,.34,.31), shallow=vec3(.22,.47,.39), light=vec3(.60,.72,.52);
+      float band=floor(clamp(p.y+.08*sin(p.x*5.0+time*.15),0.0,1.0)*4.0)/3.0;
+      vec3 col=mix(deep,mid,smoothstep(0.0,.52,band));
+      col=mix(col,shallow,smoothstep(.42,.88,band));
+      col=mix(col,mid,wave*.45);
+      col=mix(col,light,clamp(wave*.48+sparkle*.28+rings*.75+rainRing*.65,0.0,.82));
+      float skyGlint=step(.987,hash21(cell+vec2(3.0,11.0)));
+      col=mix(col,vec3(.78,.83,.66),skyGlint*(.10+.18*uDay));
+      float edge=min(min(uv.x,1.0-uv.x),min(uv.y,1.0-uv.y));
+      col=mix(vec3(.075,.16,.14),col,smoothstep(0.0,.045,edge));
       gl_FragColor=vec4(col,1.0);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
