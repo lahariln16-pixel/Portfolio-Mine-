@@ -18,8 +18,8 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color('#8eacb1');
 scene.fog = new THREE.FogExp2('#a6c2bd', 0.012);
 const camera = new THREE.PerspectiveCamera(48, innerWidth / innerHeight, 0.1, 250);
-camera.position.set(0, 10, -3);
-camera.lookAt(0, 0, -17);
+camera.position.set(0, 2, 8);
+camera.lookAt(0, 17, -22);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.8));
 renderer.setSize(innerWidth, innerHeight);
@@ -36,6 +36,8 @@ scene.add(sun);
 const fill = new THREE.DirectionalLight(0x8dc9cf, 1.1);
 fill.position.set(10, 8, -18);
 scene.add(fill);
+
+// A visible sun anchors the opening sky shot. It stays in the scene as the camera dives toward the circuit.\nconst sunDisc = new THREE.Mesh(new THREE.SphereGeometry(2.15, 32, 24), new THREE.MeshBasicMaterial({ color: 0xffedc2 }));\nsunDisc.position.set(0, 18, -22);\nscene.add(sunDisc);\nconst sunHalo = new THREE.Mesh(new THREE.SphereGeometry(3.3, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffd99a, transparent: true, opacity: .13, depthWrite: false }));\nsunHalo.position.copy(sunDisc.position);\nscene.add(sunHalo);
 
 const mats = {};
 function mat(color, roughness = .75, metalness = 0) {
@@ -362,7 +364,7 @@ const moteGeo=new THREE.BufferGeometry();moteGeo.setAttribute('position',new THR
 const moteMat=new THREE.PointsMaterial({color:0xd7f6a5,size:.075,transparent:true,opacity:0,blending:THREE.AdditiveBlending});
 const motes=new THREE.Points(moteGeo,moteMat);scene.add(motes);
 
-let entered=false, reduceMotion=reduceMotionQuery.matches, weatherIndex=0, timeIndex=0, soundOn=false;
+let entered=false, reduceMotion=reduceMotionQuery.matches, weatherIndex=0, timeIndex=0, soundOn=false;\nlet scrollProgress = 0;\nconst scrollTrack = document.querySelector('#scrollTrack');\nfunction readScrollProgress(){\n  const maxScroll = Math.max(1, document.documentElement.scrollHeight - innerHeight);\n  scrollProgress = THREE.MathUtils.clamp(window.scrollY / maxScroll, 0, 1);\n  entered = scrollProgress > .66;\n  const introOpacity = 1 - THREE.MathUtils.smoothstep(scrollProgress, .04, .22);\n  intro.style.opacity = String(introOpacity);\n  intro.style.pointerEvents = scrollProgress < .16 ? 'auto' : 'none';\n  if(scrollProgress > .62){\n    pondUI.classList.remove('is-hidden');\n    pondUI.style.opacity = String(THREE.MathUtils.smoothstep(scrollProgress, .62, .78));\n    pondUI.style.pointerEvents = scrollProgress > .72 ? 'auto' : 'none';\n    statusText.textContent = 'POND IN VIEW';\n  } else {\n    pondUI.classList.add('is-hidden');\n    pondUI.style.opacity = '0';\n    pondUI.style.pointerEvents = 'none';\n    statusText.textContent = scrollProgress > .18 ? 'RACE IN PROGRESS' : 'LOOK UP';\n  }\n}\nwindow.addEventListener('scroll', readScrollProgress, { passive: true });\nreadScrollProgress();
 const weatherModes=[{name:'CLEAR SKIES',rain:0,fog:.012},{name:'MISTY',rain:0,fog:.032},{name:'LIGHT RAIN',rain:.5,fog:.018},{name:'RAIN SHOWER',rain:1,fog:.025}];
 const timeModes=[{name:'DAYLIGHT',day:1,sky:'#8eacb1',fog:'#a6c2bd',sun:'#ffe8bd'},{name:'GOLDEN HOUR',day:.82,sky:'#d4a17a',fog:'#d5b69a',sun:'#ffbd78'},{name:'BLUE HOUR',day:.38,sky:'#334d66',fog:'#536c78',sun:'#a5c9dc'},{name:'NIGHT',day:.13,sky:'#101e32',fog:'#263b4a',sun:'#91a9d9'}];
 function applyEnvironment(){
@@ -423,14 +425,7 @@ soundToggle.addEventListener('click',()=>setSound(!soundOn));
 document.addEventListener('pointerdown',()=>{if(!soundOn)soundNote.classList.add('is-hidden')},{once:true});
 
 let screenShakeUntil=0, cameraMode='intro', transitionStart=0, transitionFrom=null;
-function enterPond(){
-  if(entered)return;entered=true;transitionStart=performance.now();transitionFrom={pos:camera.position.clone(),target:new THREE.Vector3(0,0,-15)};
-  cameraMode='transition';intro.classList.add('is-leaving');pondUI.classList.remove('is-hidden');pondUI.style.opacity='0';
-  setTimeout(()=>{pondUI.style.opacity='1';statusText.textContent='POND IN VIEW';},850);
-  setTimeout(()=>{pondUI.style.pointerEvents='auto';},1000);
-  if(soundOn)startAudio();
-}
-enterButton.addEventListener('click',enterPond);
+function enterPond(){\n  window.scrollTo({top: Math.round((document.documentElement.scrollHeight - innerHeight) * .72), behavior: reduceMotion ? 'auto' : 'smooth'});\n}\nenterButton.addEventListener('click',enterPond);
 
 const raycaster=new THREE.Raycaster(), pointerNdc=new THREE.Vector2();
 const pointerWorld=new THREE.Vector2(-20,-20);
@@ -490,12 +485,7 @@ function animate(){
   const dt=Math.min(clock.getDelta(),.04);elapsed+=dt;
   waterUniforms.uTime.value=elapsed;
   if(waterUniforms.uRipple.value>0.06)waterUniforms.uRipple.value*=Math.pow(.15,dt);else waterUniforms.uRipple.value=0;
-  racers.forEach((r,i)=>{
-    r.phase+=dt*r.speed;
-    const a=r.phase;
-    r.mesh.position.set(Math.cos(a)*r.radiusX,.02, -19+Math.sin(a)*r.radiusZ);
-    r.mesh.rotation.y=-Math.atan2(Math.cos(a)*r.radiusZ,-Math.sin(a)*r.radiusX);
-  });
+  racers.forEach((r,i)=>{\n    const raceActive = scrollProgress > .16;\n    r.mesh.visible = raceActive;\n    if(raceActive) r.phase+=dt*r.speed;\n    const a=r.phase;\n    r.mesh.position.set(Math.cos(a)*r.radiusX,.02, -19+Math.sin(a)*r.radiusZ);\n    r.mesh.rotation.y=-Math.atan2(Math.cos(a)*r.radiusZ,-Math.sin(a)*r.radiusX);\n  });
   pads.forEach(p=>{p.group.position.y=Math.sin(elapsed*.9+p.phase)*.035; p.group.rotation.y=Math.sin(elapsed*.4+p.phase)*.035;});
   koi.forEach((fish,i)=>{
     const g=fish.group;
@@ -534,37 +524,34 @@ function animate(){
   const mote= moteGeo.attributes.position.array;
   for(let i=0;i<95;i++)mote[i*3+1]=1.2+Math.sin(elapsed*.8+i)*1.6;
   moteGeo.attributes.position.needsUpdate=true;
-  if(cameraMode==='transition'){
-    const t=Math.min(1,(performance.now()-transitionStart)/(reduceMotion?1200:4200));
-    const s=smoothstep(t);
-    const from=transitionFrom.pos;
-    camera.position.set(THREE.MathUtils.lerp(from.x,0,s),THREE.MathUtils.lerp(from.y,17.5,s),THREE.MathUtils.lerp(from.z,0,s));
-    const target=new THREE.Vector3(0,0,0);
-    camera.lookAt(target);
-    camera.fov=THREE.MathUtils.lerp(48,43,s);camera.updateProjectionMatrix();
-    if(t>=1){cameraMode='pond';showToast('WELCOME TO THE POND');}
-  } else if(cameraMode==='pond'){
-    const shake=(!reduceMotion&&performance.now()<screenShakeUntil)?(Math.random()-.5)*.025:0;
-    const targetY=17.5;
-    camera.position.x+=(0-camera.position.x)*dt*.8;
-    camera.position.y+=(targetY-camera.position.y)*dt*.8;
-    camera.position.z+=(0-camera.position.z)*dt*.8;
-    camera.position.x+=shake;camera.lookAt(0,0,0);
-  } else {
-    camera.position.x=Math.sin(elapsed*.09)*.45;
-    camera.position.y=10+Math.sin(elapsed*.16)*.3;
-    camera.lookAt(0,0,-17);
-  }
+  // Scroll is the timeline: sky -> circuit/race -> overhead pond. Each pose blends into the next.
+  const keyframes = [
+    { p: 0,    pos: new THREE.Vector3(0, 2, 8),    target: new THREE.Vector3(0, 17, -22), fov: 48 },
+    { p: .18,  pos: new THREE.Vector3(0, 5, 5),    target: new THREE.Vector3(0, 0, -19),  fov: 55 },
+    { p: .42,  pos: new THREE.Vector3(0, 3.4, -7), target: new THREE.Vector3(0, 0, -19),  fov: 61 },
+    { p: .64,  pos: new THREE.Vector3(0, 9, -4),   target: new THREE.Vector3(0, 0, -2),   fov: 53 },
+    { p: 1,    pos: new THREE.Vector3(0, 17.5, 0), target: new THREE.Vector3(0, 0, 0),    fov: 43 }
+  ];
+  let a=keyframes[0], b=keyframes[keyframes.length-1];
+  for(let i=0;i<keyframes.length-1;i++){if(scrollProgress>=keyframes[i].p&&scrollProgress<=keyframes[i+1].p){a=keyframes[i];b=keyframes[i+1];break;}}
+  const rawT=THREE.MathUtils.clamp((scrollProgress-a.p)/Math.max(.001,b.p-a.p),0,1);
+  const s=reduceMotion?rawT:smoothstep(rawT);
+  camera.position.lerpVectors(a.pos,b.pos,s);
+  const lookTarget=new THREE.Vector3().lerpVectors(a.target,b.target,s);
+  const shake=(!reduceMotion&&scrollProgress>.16&&scrollProgress<.63&&performance.now()<screenShakeUntil)?(Math.random()-.5)*.025:0;
+  camera.position.x+=shake;
+  camera.lookAt(lookTarget);
+  camera.fov=THREE.MathUtils.lerp(a.fov,b.fov,s);camera.updateProjectionMatrix();
   renderer.render(scene,camera);
 }
 animate();
 
 function resize(){
   camera.aspect=innerWidth/innerHeight;
-  camera.fov=innerWidth<700?(entered?49:57):(entered?43:48);
+  camera.fov=innerWidth<700?(scrollProgress>.66?49:scrollProgress>.16?57:48):(scrollProgress>.66?43:scrollProgress>.16?55:48);
   camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));
 }
 addEventListener('resize',resize);
 applyEnvironment();
 if(reduceMotionQuery.matches)document.querySelector('#motionButton').setAttribute('aria-pressed','true');
-window.addEventListener('keydown',e=>{if(e.key==='Escape'){panel.classList.remove('is-open');panel.setAttribute('aria-hidden','true');}});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'){panel.classList.remove('is-open');panel.setAttribute('aria-hidden','true');}});\nwindow.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='PageDown'){if(scrollProgress<.99){e.preventDefault();window.scrollBy({top:innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}if(e.key==='ArrowUp'||e.key==='PageUp'){if(scrollProgress>.01){e.preventDefault();window.scrollBy({top:-innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}});
