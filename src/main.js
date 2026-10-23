@@ -246,12 +246,20 @@ function makeTree() {
 const racers = [];
 function makeCar(color, scale = 1) {
   const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(1.55, .34, 2.9), mat(color, .26, .36));
-  body.position.y = .42; g.add(body);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.48, .28, 2.72), mat(color, .24, .28));
+  body.position.y = .39; g.add(body);
+  const lowerNose = new THREE.Mesh(new THREE.BoxGeometry(1.22,.17,.92),mat(color,.22,.25));
+  lowerNose.position.set(0,.32,-1.12);g.add(lowerNose);
+  const rearDeck = new THREE.Mesh(new THREE.BoxGeometry(1.34,.2,.72),mat(color,.24,.3));
+  rearDeck.position.set(0,.43,.91);g.add(rearDeck);
   const nose = new THREE.Mesh(new THREE.BoxGeometry(1.38, .22, .75), mat(color, .25, .28));
   nose.position.set(0, .35, -1.05); g.add(nose);
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.02, .4, 1.15), mat('#18282b', .19, .28));
-  cabin.position.set(0, .72, .05); g.add(cabin);
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(.94, .38, 1.12), mat('#18282b', .19, .28));
+  cabin.position.set(0, .69, .02); g.add(cabin);
+  const windscreen = new THREE.Mesh(new THREE.BoxGeometry(.86,.26,.075),mat('#9bd7dc',.14,.2));
+  windscreen.position.set(0,.76,-.48);windscreen.rotation.x=-.24;g.add(windscreen);
+  const rearGlass = new THREE.Mesh(new THREE.BoxGeometry(.82,.22,.065),mat('#6caeb7',.18,.24));
+  rearGlass.position.set(0,.75,.48);rearGlass.rotation.x=.22;g.add(rearGlass);
   const roof = new THREE.Mesh(new THREE.BoxGeometry(.84, .08, .8), mat(color, .26, .2));
   roof.position.set(0, .96, .08); g.add(roof);
   // Extra silhouette details: front splitter, rear wing, side skirts and pixel windshield.
@@ -324,13 +332,15 @@ const carColors = ['#e8e5d9', '#d94c35', '#d7a64f', '#263f49'];
 for (let i = 0; i < 4; i++) {
   const car = makeCar(carColors[i], i === 3 ? .86 : .95);
   scene.add(car);
-  racers.push({ mesh: car, phase: i * Math.PI * .5, speed: .32 + i * .035, radiusX: 11.3, radiusZ: 4.8 });
+  // Larger oval is beyond the opening camera's framing.
+  racers.push({ mesh: car, phase: i * Math.PI * .5, speed: .22 + i * .022, radiusX: 19.5, radiusZ: 10.5 });
 }
 
 // Pond bed and shoreline.
 const pondGroup = new THREE.Group();
 scene.add(pondGroup);
 const pondRadiusX = 8.1, pondRadiusZ = 5.35;
+const fishBoundsX = pondRadiusX - 1.25, fishBoundsZ = pondRadiusZ - 1.15;
 const bed = new THREE.Mesh(new THREE.CircleGeometry(1, 96), mat('#b1a88c', .95));
 bed.rotation.x = -Math.PI / 2; bed.scale.set(pondRadiusX, pondRadiusZ, 1); bed.position.y = -.44; pondGroup.add(bed);
 const rim = new THREE.Mesh(new THREE.TorusGeometry(1, .22, 12, 96), mat('#7d8a70'));
@@ -485,8 +495,9 @@ function makeKoi(index, x, z) {
     const eye = new THREE.Mesh(new THREE.BoxGeometry(.055,.055,.055),eyeMat);
     eye.position.set(side*.145,.105,-.36); g.add(eye);
   }
-  g.position.set(x,-.035,z); pondGroup.add(g);
-  koi.push({group:g,tail:tailJoint,home:new THREE.Vector3(x,0,z),target:new THREE.Vector3(x,0,z),phase:Math.random()*6,speed:.45+Math.random()*.38,scare:0,index});
+  const safeX=THREE.MathUtils.clamp(x,-fishBoundsX,fishBoundsX),safeZ=THREE.MathUtils.clamp(z,-fishBoundsZ,fishBoundsZ);
+  g.position.set(safeX,-.035,safeZ); pondGroup.add(g);
+  koi.push({group:g,tail:tailJoint,home:new THREE.Vector3(safeX,0,safeZ),target:new THREE.Vector3(safeX,0,safeZ),phase:Math.random()*6,speed:.6+Math.random()*.3,scare:0,index});
 }
 makeKoi(0,-1.5,-1.1); makeKoi(1,1.4,-.9); makeKoi(2,.2,1.8); makeKoi(3,-4.8,.8); makeKoi(4,4.8,.6); makeKoi(5,-.8,3.7); makeKoi(6,2.5,-3.7);
 
@@ -678,7 +689,7 @@ function updatePointer(event){
   raycaster.setFromCamera(pointerNdc,camera);
   const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
   const hit=new THREE.Vector3();
-  if(raycaster.ray.intersectPlane(plane,hit)&&Math.abs(hit.x)<pondRadiusX&&Math.abs(hit.z)<pondRadiusZ){
+  if(raycaster.ray.intersectPlane(plane,hit)&&((hit.x*hit.x)/(pondRadiusX*pondRadiusX)+(hit.z*hit.z)/(pondRadiusZ*pondRadiusZ))<.94){
     pointerWorld.set(hit.x/(pondRadiusX*2)+.5,hit.z/(pondRadiusZ*2)+.5);
     waterUniforms.uPointer.value.copy(pointerWorld);waterUniforms.uRipple.value=1;pointerActive=true;lastPointerMove=performance.now();
   } else pointerActive=false;
@@ -829,33 +840,39 @@ function animate(){
     const g=fish.group;
     const px=pointerWorld.x*pondRadiusX*2-pondRadiusX,pz=pointerWorld.y*pondRadiusZ*2-pondRadiusZ;
     const dist=Math.hypot(g.position.x-px,g.position.z-pz);
-    if(pointerActive&&entered&&dist<3.8){
+    if(pointerActive&&dist<4.8){
       // Koi scatter decisively from the cursor, then circle back once it leaves.
       fish.scare=Math.min(1,fish.scare+dt*5.5);
       const dx=g.position.x-px,dz=g.position.z-pz,len=Math.max(.001,Math.hypot(dx,dz));
       const escape=4.2+(3.8-dist)*1.15;
       fish.target.set(
-        THREE.MathUtils.clamp(g.position.x+dx/len*escape,-pondRadiusX+.7,pondRadiusX-.7),
+        THREE.MathUtils.clamp(g.position.x+dx/len*escape,-fishBoundsX,fishBoundsX),
         0,
-        THREE.MathUtils.clamp(g.position.z+dz/len*escape,-pondRadiusZ+.7,pondRadiusZ-.7)
+        THREE.MathUtils.clamp(g.position.z+dz/len*escape,-fishBoundsZ,fishBoundsZ)
       );
     } else {
       fish.scare=Math.max(0,fish.scare-dt*.65);
       if(g.position.distanceTo(fish.target)<.45||Math.random()<.004){
         fish.target.set(
-          THREE.MathUtils.clamp(fish.home.x+Math.sin(elapsed*.28+fish.phase)*2.4,-pondRadiusX+.6,pondRadiusX-.6),
+          THREE.MathUtils.clamp(fish.home.x+Math.sin(elapsed*.38+fish.phase)*2.1,-fishBoundsX,fishBoundsX),
           0,
-          THREE.MathUtils.clamp(fish.home.z+Math.cos(elapsed*.22+fish.phase)*1.7,-pondRadiusZ+.6,pondRadiusZ-.6)
+          THREE.MathUtils.clamp(fish.home.z+Math.cos(elapsed*.31+fish.phase)*1.45,-fishBoundsZ,fishBoundsZ)
         );
       }
     }
-    const target=new THREE.Vector3(fish.target.x,-.035,fish.target.z);
-    // Accelerate strongly when startled and keep ordinary cruising lively.
-    g.position.lerp(target,Math.min(1,dt*(fish.speed*1.35+fish.scare*2.8)));
+    // Keep every fish inside a safe inset of the elliptical shoreline.
+    fish.target.x=THREE.MathUtils.clamp(fish.target.x,-fishBoundsX,fishBoundsX);
+    fish.target.z=THREE.MathUtils.clamp(fish.target.z,-fishBoundsZ,fishBoundsZ);
     const dx=fish.target.x-g.position.x,dz=fish.target.z-g.position.z;
-    // Fish noses point toward local -Z, so use the inverse tangent angle;
-    // this makes the head lead and the tail trail instead of swimming backwards.
-    if(Math.hypot(dx,dz)>.05)g.rotation.y=Math.atan2(-dx,-dz);
+    const remaining=Math.hypot(dx,dz);
+    const moveRate=fish.speed*1.35+fish.scare*4.5;
+    if(remaining>.04){
+      g.position.x += dx/remaining*Math.min(remaining,dt*moveRate);
+      g.position.z += dz/remaining*Math.min(remaining,dt*moveRate);
+      g.rotation.y=Math.atan2(-dx,-dz);
+    }
+    g.position.x=THREE.MathUtils.clamp(g.position.x,-fishBoundsX,fishBoundsX);
+    g.position.z=THREE.MathUtils.clamp(g.position.z,-fishBoundsZ,fishBoundsZ);
     g.rotation.z=Math.sin(elapsed*3+fish.phase)*.035*(1+fish.scare);
     fish.tail.rotation.y=Math.sin(elapsed*13+fish.phase)*(.28+fish.scare*.28);
   });
