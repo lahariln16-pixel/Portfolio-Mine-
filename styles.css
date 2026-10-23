@@ -89,3 +89,36 @@ body.pixel-8 #world canvas{filter:saturate(1.2) contrast(1.08) brightness(1.025)
 #world::after{opacity:.07;background:
  linear-gradient(30deg,transparent 49.5%,rgba(245,242,211,.1) 50%,transparent 50.5%) 0 0/72px 42px,
  linear-gradient(150deg,transparent 49.5%,rgba(180,223,174,.08) 50%,transparent 50.5%) 0 0/72px 42px}
+
+
+/* Pond landing composition: portfolio navigation feels like luminous lily markers floating on the water. */
+.pond-heading{left:5.2vw;top:12%;max-width:320px;opacity:.9}
+.pond-heading h1{font-size:clamp(30px,4vw,52px);line-height:1.2}
+.pond-subtitle{font-size:17px;max-width:280px}
+.lily-link{
+  width:clamp(112px,12vw,158px);height:clamp(82px,8.5vw,112px);
+  border:2px solid rgba(218,239,190,.8);
+  border-radius:46% 54% 42% 58% / 54% 43% 57% 46%;
+  background:radial-gradient(ellipse at 32% 22%,rgba(214,244,185,.52),rgba(54,103,74,.78) 46%,rgba(21,58,54,.78) 78%);
+  box-shadow:0 8px 0 rgba(23,53,44,.36),0 0 22px rgba(192,226,157,.18),inset 0 2px 0 rgba(247,255,216,.35);
+  backdrop-filter:blur(2px);
+}
+.lily-link:nth-child(1){left:37%;top:43%}
+.lily-link:nth-child(2){left:63%;top:43%}
+.lily-link:nth-child(3){left:39%;top:64%}
+.lily-link:nth-child(4){left:61%;top:64%}
+.lily-link::after{content:"";position:absolute;left:13%;right:18%;bottom:13%;height:1px;background:linear-gradient(90deg,transparent,rgba(215,242,177,.6),transparent);pointer-events:none}
+.lily-link:hover,.lily-link:focus-visible{background:radial-gradient(ellipse at 32% 22%,rgba(238,255,210,.65),rgba(70,128,84,.86) 48%,rgba(21,58,54,.84) 80%);box-shadow:0 8px 0 rgba(23,53,44,.3),0 0 32px rgba(204,239,162,.32),inset 0 2px 0 rgba(247,255,216,.45)}
+.pond-label{top:36%;font-size:14px;color:rgba(241,247,218,.8)}
+.pond-bottom{color:rgba(242,246,221,.82)}
+@media(max-width:760px){
+ .pond-heading{top:10%;left:6vw;max-width:245px}
+ .pond-heading h1{font-size:clamp(25px,7vw,39px)}
+ .pond-subtitle{font-size:14px;max-width:220px}
+ .lily-link{width:96px;height:75px}
+ .lily-link:nth-child(1){left:30%;top:46%}
+ .lily-link:nth-child(2){left:70%;top:46%}
+ .lily-link:nth-child(3){left:31%;top:65%}
+ .lily-link:nth-child(4){left:69%;top:65%}
+ .pond-label{top:38%;font-size:10px}
+}
