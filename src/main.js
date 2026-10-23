@@ -23,9 +23,9 @@ camera.position.set(0, 2, 8);
 camera.lookAt(0, 17, -22);
 const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(1);
-let pixelStyle = '16';
+let pixelStyle = '64';
 function setPixelResolution(){
-  const divisor = pixelStyle === '8' ? 4 : 2.5;
+  const divisor = pixelStyle === '8' ? 4 : pixelStyle === '16' ? 2.5 : 1;
   renderer.setSize(Math.max(240,Math.floor(innerWidth/divisor)),Math.max(135,Math.floor(innerHeight/divisor)),false);
 }
 setPixelResolution();
@@ -1034,20 +1034,22 @@ function setPhotoMode(enabled) {
 photoModeButton?.addEventListener('click', () => setPhotoMode(!photoMode));
 
 
-// Pixel-era switch: 8-bit uses chunkier pixels and a punchier palette;
-// 16-bit uses finer rendering while retaining the voxel-art world.
+// Pixel-art quality switch: 8-bit is chunky, 16-bit is balanced, and 64-bit
+// uses the full device viewport for a crisp, high-detail version of the world.
 const pixelStyleButton = document.querySelector('#pixelStyleButton');
 function applyPixelStyle(style, notify = true) {
   pixelStyle = style;
   document.body.classList.toggle('pixel-8', style === '8');
   setPixelResolution();
   if (pixelStyleButton) {
-    pixelStyleButton.textContent = style === '8' ? '8-BIT' : '16-BIT';
+    pixelStyleButton.textContent = style.toUpperCase() + '-BIT';
     pixelStyleButton.setAttribute('aria-pressed', String(style === '8'));
     pixelStyleButton.title = style === '8'
-      ? 'Switch to finer 16-bit pixel rendering'
+      ? 'Switch to balanced 16-bit pixel rendering'
+      : style === '16' ? 'Switch to crisp full-resolution 64-bit-style rendering'
       : 'Switch to chunkier 8-bit pixel rendering';
   }
-  if (notify) showToast(style === '8' ? '8-BIT MODE · CHUNKY PIXELS' : '16-BIT MODE · FINE PIXELS');
+  if (notify) showToast(style === '8' ? '8-BIT MODE · CHUNKY PIXELS' : style === '16' ? '16-BIT MODE · FINE PIXELS' : '64-BIT MODE · FULL-RES DETAIL');
 }
-pixelStyleButton?.addEventListener('click', () => applyPixelStyle(pixelStyle === '8' ? '16' : '8', true));
+pixelStyleButton?.addEventListener('click', () => applyPixelStyle(pixelStyle === '8' ? '16' : pixelStyle === '16' ? '64' : '8', true));
+applyPixelStyle('64', false);
