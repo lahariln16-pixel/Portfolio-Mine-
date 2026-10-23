@@ -493,7 +493,7 @@ function makeFrog() {
     leg.position.set(s*.19,.1,.1); g.add(leg);
   }
   scene.add(g);
-  return {group:g,eyes,padIndex:Math.floor(Math.random()*pads.length),jump:null,blinkAt:1+Math.random()*4,blinking:0,phase:Math.random()*6};
+  return {group:g,eyes,padIndex:Math.floor(Math.random()*pads.length),jump:null,blinkAt:1+Math.random()*4,blinking:0,phase:Math.random()*6,lastPointerHop:-10};
 }
 frogs.push(makeFrog(),makeFrog(),makeFrog());
 function frogOnPad(frog,index) {
@@ -790,13 +790,25 @@ function animate(){
     const g=fish.group;
     const px=pointerWorld.x*pondRadiusX*2-pondRadiusX,pz=pointerWorld.y*pondRadiusZ*2-pondRadiusZ;
     const dist=Math.hypot(g.position.x-px,g.position.z-pz);
-    if(pointerActive&&entered&&dist<3.1){
-      fish.scare=Math.min(1,fish.scare+dt*2.4);
+    if(pointerActive&&entered&&dist<3.8){
+      // Koi scatter decisively from the cursor, then circle back once it leaves.
+      fish.scare=Math.min(1,fish.scare+dt*3.8);
       const dx=g.position.x-px,dz=g.position.z-pz,len=Math.max(.001,Math.hypot(dx,dz));
-      fish.target.set(THREE.MathUtils.clamp(g.position.x+dx/len*2.8,-pondRadiusX+.7,pondRadiusX-.7),0,THREE.MathUtils.clamp(g.position.z+dz/len*2.5,-pondRadiusZ+.7,pondRadiusZ-.7));
+      const escape=3.2+(3.8-dist)*.9;
+      fish.target.set(
+        THREE.MathUtils.clamp(g.position.x+dx/len*escape,-pondRadiusX+.7,pondRadiusX-.7),
+        0,
+        THREE.MathUtils.clamp(g.position.z+dz/len*escape,-pondRadiusZ+.7,pondRadiusZ-.7)
+      );
     } else {
-      fish.scare=Math.max(0,fish.scare-dt*.45);
-      if(g.position.distanceTo(fish.target)<.45||Math.random()<.004){fish.target.set(THREE.MathUtils.clamp(fish.home.x+Math.sin(elapsed*.28+fish.phase)*2.4,-pondRadiusX+.6,pondRadiusX-.6),0,THREE.MathUtils.clamp(fish.home.z+Math.cos(elapsed*.22+fish.phase)*1.7,-pondRadiusZ+.6,pondRadiusZ-.6));}
+      fish.scare=Math.max(0,fish.scare-dt*.65);
+      if(g.position.distanceTo(fish.target)<.45||Math.random()<.004){
+        fish.target.set(
+          THREE.MathUtils.clamp(fish.home.x+Math.sin(elapsed*.28+fish.phase)*2.4,-pondRadiusX+.6,pondRadiusX-.6),
+          0,
+          THREE.MathUtils.clamp(fish.home.z+Math.cos(elapsed*.22+fish.phase)*1.7,-pondRadiusZ+.6,pondRadiusZ-.6)
+        );
+      }
     }
     const target=new THREE.Vector3(fish.target.x,-.035,fish.target.z);
     g.position.lerp(target,Math.min(1,dt*fish.speed*(1+fish.scare*3)));
@@ -811,9 +823,23 @@ function animate(){
     f.group.position.y=.035+Math.sin(elapsed*1.8+f.phase)*.025;
     // Frogs glance toward the pointer and blink with a tiny pixel-eye squash.
     const px=pointerWorld.x*pondRadiusX*2-pondRadiusX,pz=pointerWorld.y*pondRadiusZ*2-pondRadiusZ;
+    const dx=px-f.group.position.x,dz=pz-f.group.position.z;
+    const pointerDistance=Math.hypot(dx,dz);
     if(pointerActive&&entered&&!f.jump){
-      const dx=px-f.group.position.x,dz=pz-f.group.position.z;
-      f.group.rotation.y=THREE.MathUtils.clamp(Math.atan2(dx,dz),-.65,.65);
+      // They turn to watch the cursor, then hop to a safer lily pad if it gets close.
+      f.group.rotation.y=THREE.MathUtils.clamp(Math.atan2(dx,dz),-.9,.9);
+      if(pointerDistance<1.65&&elapsed-f.lastPointerHop>1.15){
+        const occupied=new Set(frogs.filter(other=>other!==f).map(other=>other.padIndex));
+        let destination=-1,bestScore=-Infinity;
+        pads.forEach((pad,index)=>{
+          if(index===f.padIndex||occupied.has(index))return;
+          const away=Math.hypot(pad.x-px,pad.z-pz);
+          const distanceFromFrog=Math.hypot(pad.x-f.group.position.x,pad.z-f.group.position.z);
+          const score=away-distanceFromFrog*.22;
+          if(score>bestScore){bestScore=score;destination=index;}
+        });
+        if(destination>=0){f.lastPointerHop=elapsed;jumpFrog(f,destination);f.group.rotation.y=Math.atan2(-dx,-dz);}
+      }
     } else if(!f.jump) f.group.rotation.y=Math.sin(elapsed*.35+f.phase)*.08;
     f.blinkAt-=dt;
     if(f.blinkAt<=0&&f.blinking<=0)f.blinking=.16;
