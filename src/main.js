@@ -192,8 +192,10 @@ function makeCar(color, scale = 1) {
   const roof = new THREE.Mesh(new THREE.BoxGeometry(.84, .08, .8), mat(color, .26, .2));
   roof.position.set(0, .96, .08); g.add(roof);
   for (const x of [-.79, .79]) for (const z of [-.85, .85]) {
-    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(.25, .25, .16, 12), mat('#16191a', .8));
-    wheel.rotation.z = Math.PI / 2; wheel.position.set(x, .25, z); g.add(wheel);
+    const wheel = new THREE.Mesh(new THREE.BoxGeometry(.2, .42, .42), mat('#242a35', .8));
+    wheel.position.set(x, .25, z); g.add(wheel);
+    const hub = new THREE.Mesh(new THREE.BoxGeometry(.215, .12, .12), mat('#d5c4a6', .7));
+    hub.position.set(x + (x < 0 ? -.015 : .015), .25, z); g.add(hub);
   }
   const lightMat = new THREE.MeshBasicMaterial({ color: 0xffe9c0 });
   for (const x of [-.48, .48]) {
@@ -318,22 +320,23 @@ for (let i = 0; i < 17; i++) {
 const koi = [];
 function makeKoi(index, x, z) {
   const g = new THREE.Group();
-  const baseMat = index % 3 === 0 ? mats.koiBlack : mats.koiWhite;
-  const body = new THREE.Mesh(new THREE.SphereGeometry(.32, 16, 12), baseMat);
-  body.scale.set(.55,.55,1.35); body.rotation.x = .12; g.add(body);
-  const patch = new THREE.Mesh(new THREE.SphereGeometry(.2, 12, 9), index % 2 ? mats.koiOrange : mats.koiBlack);
-  patch.scale.set(.7,.65,.55); patch.position.set(0,.18,-.15); g.add(patch);
-  const tail = new THREE.Mesh(new THREE.ConeGeometry(.22,.5,9), baseMat);
-  tail.rotation.x = Math.PI / 2; tail.position.z = .52; tail.scale.set(1,.65,1); g.add(tail);
+  const white = index % 3 === 0 ? mats.koiBlack : mats.koiWhite;
+  const patchMat = index % 2 ? mats.koiOrange : mats.koiBlack;
+  // Rectangular voxel body, separate colour patches, and a hinged pixel tail.
+  const body = new THREE.Mesh(new THREE.BoxGeometry(.43,.25,.92), white);
+  body.position.y=.04; g.add(body);
+  const patch = new THREE.Mesh(new THREE.BoxGeometry(.34,.13,.29), patchMat);
+  patch.position.set(0,.17,-.12); g.add(patch);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(.22,.1,.34), patchMat);
+  tail.position.set(0,.03,.59); g.add(tail);
   for (const side of [-1,1]) {
-    const fin = new THREE.Mesh(new THREE.ConeGeometry(.12,.32,8), index % 2 ? mats.koiWhite : mats.koiOrange);
-    fin.rotation.z = side * .75; fin.rotation.x = Math.PI / 2;
-    fin.position.set(side*.17,-.06,.08); g.add(fin);
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(.18,.055,.28), index%2?mats.koiWhite:mats.koiOrange);
+    fin.position.set(side*.24,-.04,.08); fin.rotation.y=side*.22; g.add(fin);
   }
   const eyeMat = new THREE.MeshBasicMaterial({color:0x101817});
   for (const side of [-1,1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(.035,8,8),eyeMat);
-    eye.position.set(side*.14,.1,-.34); g.add(eye);
+    const eye = new THREE.Mesh(new THREE.BoxGeometry(.055,.055,.055),eyeMat);
+    eye.position.set(side*.17,.1,-.32); g.add(eye);
   }
   g.position.set(x,-.035,z); pondGroup.add(g);
   koi.push({group:g,home:new THREE.Vector3(x,0,z),target:new THREE.Vector3(x,0,z),phase:Math.random()*6,speed:.45+Math.random()*.38,scare:0,index});
@@ -344,17 +347,17 @@ makeKoi(0,-1.5,-1.1); makeKoi(1,1.4,-.9); makeKoi(2,.2,1.8); makeKoi(3,-4.8,.8);
 const frogs = [];
 function makeFrog() {
   const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.SphereGeometry(.22,14,10),mats.frog);
-  body.scale.set(1.1,.7,1.15); body.position.y=.25; g.add(body);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(.19,14,10),mats.frog);
-  head.position.set(0,.37,-.12); g.add(head);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(.38,.2,.4),mats.frog);
+  body.position.y=.19; g.add(body);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(.34,.24,.3),mats.frog);
+  head.position.set(0,.34,-.12); g.add(head);
   for (const s of [-1,1]) {
-    const eyeStem = new THREE.Mesh(new THREE.SphereGeometry(.075,10,8),mats.frog);
-    eyeStem.position.set(s*.12,.51,-.18); g.add(eyeStem);
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(.037,8,8),mat('#18291d'));
-    eye.position.set(s*.12,.54,-.225); g.add(eye);
-    const leg = new THREE.Mesh(new THREE.SphereGeometry(.09,10,8),mats.frogDark);
-    leg.scale.set(1,.5,1.4); leg.position.set(s*.2,.14,.1); g.add(leg);
+    const eyeStem = new THREE.Mesh(new THREE.BoxGeometry(.11,.13,.11),mats.frog);
+    eyeStem.position.set(s*.12,.49,-.19); g.add(eyeStem);
+    const eye = new THREE.Mesh(new THREE.BoxGeometry(.055,.055,.04),mat('#18291d'));
+    eye.position.set(s*.12,.51,-.25); g.add(eye);
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(.16,.09,.2),mats.frogDark);
+    leg.position.set(s*.19,.1,.1); g.add(leg);
   }
   scene.add(g);
   return {group:g,padIndex:Math.floor(Math.random()*pads.length),jump:null,blinkAt:Math.random()*5,phase:Math.random()*6};
