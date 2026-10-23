@@ -766,6 +766,15 @@ function smoothstep(t){return t*t*(3-2*t);}
 function animate(){
   requestAnimationFrame(animate);
   const dt=Math.min(clock.getDelta(),.04);elapsed+=dt;
+  // Blend into pale, dense mist as the camera leaves the track and settles above the pond.
+  const pondMist = THREE.MathUtils.smoothstep(scrollProgress,.53,.76);
+  const mist = new THREE.Color('#c8d8cf');
+  const skyTarget = new THREE.Color(timeModes[timeIndex].sky);
+  const fogTarget = new THREE.Color(timeModes[timeIndex].fog);
+  scene.background.copy(skyTarget).lerp(mist,pondMist);
+  scene.fog.color.copy(fogTarget).lerp(mist,pondMist);
+  scene.fog.near = THREE.MathUtils.lerp(8,5.5,pondMist);
+  scene.fog.far = THREE.MathUtils.lerp(25,17,pondMist);
   waterUniforms.uTime.value=elapsed;
   swayingTrees.forEach(({tree,phase,amount})=>{tree.rotation.z=Math.sin(elapsed*.7+phase)*amount;tree.rotation.x=Math.cos(elapsed*.53+phase)*amount*.55;});
   stars.visible=timeIndex>=1;stars.rotation.z=Math.sin(elapsed*.025)*.012;
