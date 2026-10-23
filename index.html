@@ -24,6 +24,7 @@
     <div class="play-controls" aria-label="Play modes">
       <button id="driveModeButton" class="icon-button mode-button" aria-pressed="false" title="Drive with WASD or arrow keys">DRIVE</button>
       <button id="freeCameraButton" class="icon-button mode-button" aria-pressed="false" title="Look around with WASD or arrow keys">FREE CAM</button>
+      <button id="photoModeButton" class="icon-button mode-button" aria-pressed="false" title="Hide the interface for a clean screenshot">PHOTO</button>
     </div>
     <div class="view-controls" aria-label="World view controls">
       <button id="zoomOutButton" class="icon-button view-button" aria-label="Zoom out" title="Zoom out">−</button>
@@ -81,6 +82,8 @@
     <p class="panel-foot">THE FROG WILL GUIDE YOU BACK <span>↗</span></p>
   </section>
 
+  <aside id="worldHud" class="world-hud" aria-label="World status"><div class="hud-kicker">FIELD NOTES <span>✦</span></div><div class="hud-title">PONDSIDE / 01</div><div class="hud-rule"></div><div class="hud-stat"><span>BIOME</span><strong>PIXEL HIGHLANDS</strong></div><div class="hud-stat"><span>WILDLIFE</span><strong>KOI · FROGS</strong></div><div class="hud-stat"><span>CONTROLS</span><strong>SCROLL / CLICK</strong></div><div class="hud-compass" aria-hidden="true"><span>N</span><i></i><b>✦</b></div></aside>
+  <div id="photoExit" class="photo-exit" hidden>PHOTO MODE ACTIVE · PRESS ESC TO RETURN</div>
   <div id="toast" class="toast" role="status"></div>
   <div class="sound-note" id="soundNote">CLICK ANYWHERE TO WAKE THE WORLD'S SOUND</div>
   <script type="module" src="./src/main.js"></script>
