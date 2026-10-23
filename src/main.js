@@ -360,16 +360,17 @@ function makeFrog() {
   body.position.y=.19; g.add(body);
   const head = new THREE.Mesh(new THREE.BoxGeometry(.34,.24,.3),mats.frog);
   head.position.set(0,.34,-.12); g.add(head);
+  const eyes=[];
   for (const s of [-1,1]) {
     const eyeStem = new THREE.Mesh(new THREE.BoxGeometry(.11,.13,.11),mats.frog);
     eyeStem.position.set(s*.12,.49,-.19); g.add(eyeStem);
     const eye = new THREE.Mesh(new THREE.BoxGeometry(.055,.055,.04),mat('#18291d'));
-    eye.position.set(s*.12,.51,-.25); g.add(eye);
+    eye.position.set(s*.12,.51,-.25); g.add(eye); eyes.push(eye);
     const leg = new THREE.Mesh(new THREE.BoxGeometry(.16,.09,.2),mats.frogDark);
     leg.position.set(s*.19,.1,.1); g.add(leg);
   }
   scene.add(g);
-  return {group:g,padIndex:Math.floor(Math.random()*pads.length),jump:null,blinkAt:Math.random()*5,phase:Math.random()*6};
+  return {group:g,eyes,padIndex:Math.floor(Math.random()*pads.length),jump:null,blinkAt:1+Math.random()*4,blinking:0,phase:Math.random()*6};
 }
 frogs.push(makeFrog(),makeFrog(),makeFrog());
 function frogOnPad(frog,index) {
@@ -422,6 +423,13 @@ for(let i=0;i<95;i++){motePositions[i*3]=(Math.random()-.5)*32;motePositions[i*3
 const moteGeo=new THREE.BufferGeometry();moteGeo.setAttribute('position',new THREE.BufferAttribute(motePositions,3));
 const moteMat=new THREE.PointsMaterial({color:0xd7f6a5,size:.075,transparent:true,opacity:0,blending:THREE.AdditiveBlending});
 const motes=new THREE.Points(moteGeo,moteMat);scene.add(motes);
+const fireflies=[];
+for(let i=0;i<22;i++){
+  const glow=new THREE.Mesh(new THREE.BoxGeometry(.075,.075,.075),new THREE.MeshBasicMaterial({color:i%3===0?0xffe6a1:0xc9f3a1,transparent:true,opacity:.75}));
+  glow.position.set((Math.random()-.5)*18,.45+Math.random()*2.5,(Math.random()-.5)*13);
+  scene.add(glow);
+  fireflies.push({mesh:glow,phase:Math.random()*Math.PI*2,speed:.5+Math.random()*1.4,baseY:glow.position.y});
+}
 
 let entered=false, reduceMotion=reduceMotionQuery.matches, weatherIndex=0, timeIndex=0, soundOn=false;
 let scrollProgress = 0;
@@ -532,10 +540,24 @@ renderer.domElement.addEventListener('pointerdown',event=>{
   if(pointerActive){waterUniforms.uRipple.value=1.8;spawnSplash(pointerWorld.x*pondRadiusX*2-pondRadiusX,pointerWorld.y*pondRadiusZ*2-pondRadiusZ);}
 });
 function spawnSplash(x,z){
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(.15,.012,5,40),new THREE.MeshBasicMaterial({color:0xd5e9c9,transparent:true,opacity:.8}));
+  // Square-edged ring plus tiny block droplets for a pixel-game splash.
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(.15,.012,4,12),new THREE.MeshBasicMaterial({color:0xd5e9c9,transparent:true,opacity:.8}));
   ring.rotation.x=Math.PI/2;ring.position.set(x,.025,z);pondGroup.add(ring);
+  const droplets=[];
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI/4, h=.12+(i%3)*.055;
+    const bit=new THREE.Mesh(new THREE.BoxGeometry(.07,.07,.07),new THREE.MeshBasicMaterial({color:i%2?0xa8d9bd:0xe1e8bd,transparent:true,opacity:.95}));
+    bit.position.set(x+Math.cos(a)*.18,.06,z+Math.sin(a)*.18);pondGroup.add(bit);
+    droplets.push({mesh:bit,a,h});
+  }
   const start=performance.now();
-  function animateRing(){const t=(performance.now()-start)/700;if(t>=1){pondGroup.remove(ring);ring.geometry.dispose();ring.material.dispose();return;}ring.scale.setScalar(1+t*8);ring.material.opacity=.8*(1-t);requestAnimationFrame(animateRing);}
+  function animateRing(){
+    const t=(performance.now()-start)/700;
+    if(t>=1){pondGroup.remove(ring);ring.geometry.dispose();ring.material.dispose();droplets.forEach(d=>{pondGroup.remove(d.mesh);d.mesh.geometry.dispose();d.mesh.material.dispose();});return;}
+    ring.scale.setScalar(1+t*8);ring.material.opacity=.8*(1-t);
+    droplets.forEach(d=>{d.mesh.position.x=x+Math.cos(d.a)*(.18+t*.6);d.mesh.position.z=z+Math.sin(d.a)*(.18+t*.6);d.mesh.position.y=.06+Math.sin(t*Math.PI)*d.h;d.mesh.material.opacity=1-t;});
+    requestAnimationFrame(animateRing);
+  }
   requestAnimationFrame(animateRing);
 }
 
@@ -602,6 +624,18 @@ function animate(){
     f.phase+=dt;
     f.group.rotation.z=Math.sin(elapsed*1.7+f.phase)*.025;
     f.group.position.y=.035+Math.sin(elapsed*1.8+f.phase)*.025;
+    // Frogs glance toward the pointer and blink with a tiny pixel-eye squash.
+    const px=pointerWorld.x*pondRadiusX*2-pondRadiusX,pz=pointerWorld.y*pondRadiusZ*2-pondRadiusZ;
+    if(pointerActive&&entered&&!f.jump){
+      const dx=px-f.group.position.x,dz=pz-f.group.position.z;
+      f.group.rotation.y=THREE.MathUtils.clamp(Math.atan2(dx,dz),-.65,.65);
+    } else if(!f.jump) f.group.rotation.y=Math.sin(elapsed*.35+f.phase)*.08;
+    f.blinkAt-=dt;
+    if(f.blinkAt<=0&&f.blinking<=0)f.blinking=.16;
+    if(f.blinking>0){
+      f.blinking-=dt;f.eyes.forEach(eye=>eye.scale.y=.12);
+      if(f.blinking<=0){f.eyes.forEach(eye=>eye.scale.y=1);f.blinkAt=2.5+Math.random()*4;}
+    }
     if(f.jump){
       f.jump.t+=dt;
       const t=Math.min(1,f.jump.t/f.jump.duration),s=smoothstep(t);
@@ -619,6 +653,12 @@ function animate(){
   const mote= moteGeo.attributes.position.array;
   for(let i=0;i<95;i++)mote[i*3+1]=1.2+Math.sin(elapsed*.8+i)*1.6;
   moteGeo.attributes.position.needsUpdate=true;
+  fireflies.forEach((f,i)=>{
+    f.mesh.position.y=f.baseY+Math.sin(elapsed*f.speed+f.phase)*.28;
+    f.mesh.position.x+=Math.sin(elapsed*.7+f.phase)*dt*.12;
+    f.mesh.material.opacity=(timeIndex===3?.85:timeIndex===2?.34:.08)+Math.sin(elapsed*2+f.phase)*.12;
+    f.mesh.visible=scrollProgress>.48;
+  });
   // Scroll is the timeline: sky -> circuit/race -> overhead pond. Each pose blends into the next.
   const keyframes = [
     { p: 0,    pos: new THREE.Vector3(0, 2, 8),    target: new THREE.Vector3(0, 17, -22), fov: 48 },
