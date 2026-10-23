@@ -122,3 +122,10 @@ body.pixel-8 #world canvas{filter:saturate(1.2) contrast(1.08) brightness(1.025)
  .lily-link:nth-child(4){left:69%;top:65%}
  .pond-label{top:38%;font-size:10px}
 }
+
+/* Optional realism preset: natural shadows and a cleaner, less stylized image. */
+body.realistic-mode .grain{opacity:.018}
+body.realistic-mode .vignette{background:radial-gradient(ellipse at center,transparent 48%,rgba(4,12,14,.10) 82%,rgba(4,12,14,.32) 130%)}
+body.realistic-mode #world canvas{image-rendering:auto;filter:saturate(.9) contrast(1.025)}
+body.realistic-mode .mode-button#realismButton[aria-pressed="true"]{background:rgba(191,224,255,.2);border-color:rgba(191,224,255,.9);color:#e6f4ff}
+@media(max-width:760px){.play-controls{max-width:57vw;overflow-x:auto;scrollbar-width:none}.play-controls::-webkit-scrollbar{display:none}}
