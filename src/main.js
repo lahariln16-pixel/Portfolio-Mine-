@@ -254,6 +254,9 @@ for(let i=0;i<4;i++){
   scene.add(g);exhaustPixels.push({group:g,puffs,phase:i*1.7});
 }
 
+let driveMode=false, freeCameraMode=false, followedFrog=null;
+const driveKeys=new Set();
+let freeYaw=0,freePitch=0;
 const carColors = ['#e8e5d9', '#d94c35', '#d7a64f', '#263f49'];
 for (let i = 0; i < 4; i++) {
   const car = makeCar(carColors[i], i === 3 ? .86 : .95);
@@ -587,6 +590,14 @@ function updatePointer(event){
 renderer.domElement.addEventListener('pointermove',updatePointer);
 renderer.domElement.addEventListener('pointerleave',()=>{pointerActive=false;});
 renderer.domElement.addEventListener('pointerdown',event=>{
+  // Clicking a frog toggles a close follow view; otherwise clicks make pond ripples.
+  pointerNdc.x=(event.clientX/innerWidth)*2-1;pointerNdc.y=-(event.clientY/innerHeight)*2+1;
+  raycaster.setFromCamera(pointerNdc,camera);
+  const frogHits=raycaster.intersectObjects(frogs.map(f=>f.group),true);
+  if(frogHits.length){
+    let picked=frogs.find(f=>{let n=frogHits[0].object;while(n&&n!==f.group)n=n.parent;return n===f.group;});
+    if(picked){followedFrog=followedFrog===picked?null:picked;showToast(followedFrog?'FROG FOLLOW CAMERA · CLICK AGAIN TO EXIT':'FOLLOW CAMERA OFF');return;}
+  }
   updatePointer(event);
   if(pointerActive){waterUniforms.uRipple.value=1.8;spawnSplash(pointerWorld.x*pondRadiusX*2-pondRadiusX,pointerWorld.y*pondRadiusZ*2-pondRadiusZ);}
 });
@@ -635,7 +646,30 @@ document.querySelector('#timeButton').addEventListener('click',()=>{timeIndex=(t
 document.querySelector('#motionButton').addEventListener('click',event=>{reduceMotion=!reduceMotion;event.currentTarget.setAttribute('aria-pressed',String(reduceMotion));event.currentTarget.innerHTML=reduceMotion?'MOTION REDUCED <span>●</span>':'REDUCE MOTION <span>○</span>';showToast(reduceMotion?'REDUCED MOTION ON':'FULL MOTION ON');});
 document.querySelector('#zoomInButton').addEventListener('click',()=>{camera.zoom=Math.min(1.65,camera.zoom+.12);camera.updateProjectionMatrix();showToast('VIEW ZOOMED IN');});
 document.querySelector('#zoomOutButton').addEventListener('click',()=>{camera.zoom=Math.max(.72,camera.zoom-.12);camera.updateProjectionMatrix();showToast('VIEW ZOOMED OUT');});
-document.querySelector('#resetViewButton').addEventListener('click',()=>{camera.zoom=1;camera.updateProjectionMatrix();window.scrollTo({top:0,behavior:reduceMotion?'auto':'smooth'});showToast('WORLD VIEW RESET');});
+document.querySelector('#resetViewButton').addEventListener('click',()=>{
+  camera.zoom=1;camera.updateProjectionMatrix();window.scrollTo({top:0,behavior:reduceMotion?'auto':'smooth'});
+  weatherIndex=0;timeIndex=0;applyEnvironment();followedFrog=null;driveMode=false;freeCameraMode=false;driveKeys.clear();freeYaw=0;freePitch=0;
+  document.querySelector('#driveModeButton').textContent='DRIVE';document.querySelector('#driveModeButton').setAttribute('aria-pressed','false');
+  document.querySelector('#freeCameraButton').textContent='FREE CAM';document.querySelector('#freeCameraButton').setAttribute('aria-pressed','false');
+  showToast('WORLD VIEW RESET');
+});
+document.querySelector('#driveModeButton').addEventListener('click',event=>{
+  driveMode=!driveMode;freeCameraMode=false;followedFrog=null;
+  document.querySelector('#freeCameraButton').setAttribute('aria-pressed','false');
+  event.currentTarget.setAttribute('aria-pressed',String(driveMode));
+  event.currentTarget.textContent=driveMode?'EXIT DRIVE':'DRIVE';
+  document.querySelector('#freeCameraButton').textContent='FREE CAM';
+  showToast(driveMode?'DRIVE MODE · WASD / ARROWS':'RACE AUTOPILOT RESTORED');
+});
+document.querySelector('#freeCameraButton').addEventListener('click',event=>{
+  freeCameraMode=!freeCameraMode;driveMode=false;followedFrog=null;freeYaw=0;freePitch=0;
+  document.querySelector('#driveModeButton').setAttribute('aria-pressed','false');
+  document.querySelector('#driveModeButton').textContent='DRIVE';
+  event.currentTarget.setAttribute('aria-pressed',String(freeCameraMode));
+  event.currentTarget.textContent=freeCameraMode?'EXIT CAM':'FREE CAM';
+  showToast(freeCameraMode?'FREE CAMERA · ARROW KEYS':'SCROLL CAMERA RESTORED');
+});
+
 
 
 // The camera starts by the racing circuit, then glides to a top-down pond view.
@@ -665,7 +699,16 @@ function animate(){
   racers.forEach((r,i)=>{
     const raceActive = scrollProgress > .16;
     r.mesh.visible = raceActive;
-    if(raceActive) r.phase+=dt*r.speed;
+    if(raceActive){
+      if(driveMode&&i===0){
+        if(driveKeys.has('w')||driveKeys.has('arrowup'))r.speed=Math.min(1.15,r.speed+dt*.5);
+        else if(driveKeys.has('s')||driveKeys.has('arrowdown'))r.speed=Math.max(.08,r.speed-dt*.7);
+        else r.speed=THREE.MathUtils.damp(r.speed,.42,1.4,dt);
+        if(driveKeys.has('a')||driveKeys.has('arrowleft'))r.phase+=dt*(r.speed*1.7);
+        else if(driveKeys.has('d')||driveKeys.has('arrowright'))r.phase-=dt*(r.speed*1.7);
+        else r.phase+=dt*r.speed;
+      } else r.phase+=dt*r.speed;
+    }
     const a=r.phase;
     r.mesh.position.set(Math.cos(a)*r.radiusX,.02, -19+Math.sin(a)*r.radiusZ);
     r.mesh.rotation.y=-Math.atan2(Math.cos(a)*r.radiusZ,-Math.sin(a)*r.radiusX);
@@ -747,6 +790,20 @@ function animate(){
   const s=reduceMotion?rawT:smoothstep(rawT);
   camera.position.lerpVectors(a.pos,b.pos,s);
   const lookTarget=new THREE.Vector3().lerpVectors(a.target,b.target,s);
+  if(freeCameraMode){
+    freeYaw+=((driveKeys.has('arrowleft')||driveKeys.has('a'))?1:0)*dt*.8;
+    freeYaw-=((driveKeys.has('arrowright')||driveKeys.has('d'))?1:0)*dt*.8;
+    freePitch+=((driveKeys.has('arrowup')||driveKeys.has('w'))?1:0)*dt*.45;
+    freePitch-=((driveKeys.has('arrowdown')||driveKeys.has('s'))?1:0)*dt*.45;
+    freePitch=THREE.MathUtils.clamp(freePitch,-.45,.45);
+    lookTarget.x+=Math.sin(freeYaw)*5;lookTarget.z-=Math.cos(freeYaw)*4;lookTarget.y+=freePitch*8;
+  }
+  if(followedFrog&&scrollProgress>.55){
+    const fp=followedFrog.group.position;
+    const desired=new THREE.Vector3(fp.x+3,fp.y+2.2,fp.z+4);
+    camera.position.lerp(desired,Math.min(1,dt*2.2));
+    lookTarget.set(fp.x,fp.y+.2,fp.z);
+  }
   // Gentle racing follow-camera sway adds speed without fighting the scroll-driven journey.
   const raceBlend=THREE.MathUtils.smoothstep(scrollProgress,.2,.42)*(1-THREE.MathUtils.smoothstep(scrollProgress,.52,.65));
   if(!reduceMotion&&raceBlend>.001){
@@ -770,5 +827,18 @@ function resize(){
 addEventListener('resize',resize);
 applyEnvironment();
 if(reduceMotionQuery.matches)document.querySelector('#motionButton').setAttribute('aria-pressed','true');
-window.addEventListener('keydown',e=>{if(e.key==='Escape'){panel.classList.remove('is-open');panel.setAttribute('aria-hidden','true');}});
+window.addEventListener('keydown',e=>{
+  const key=e.key.toLowerCase();
+  if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){
+    if(driveMode||freeCameraMode){driveKeys.add(key);e.preventDefault();}
+  }
+  if(e.key==='Escape'){
+    panel.classList.remove('is-open');panel.setAttribute('aria-hidden','true');
+    followedFrog=null;driveMode=false;freeCameraMode=false;driveKeys.clear();
+    document.querySelector('#driveModeButton').textContent='DRIVE';document.querySelector('#driveModeButton').setAttribute('aria-pressed','false');
+    document.querySelector('#freeCameraButton').textContent='FREE CAM';document.querySelector('#freeCameraButton').setAttribute('aria-pressed','false');
+  }
+});
+window.addEventListener('keyup',e=>driveKeys.delete(e.key.toLowerCase()));
+window.addEventListener('blur',()=>driveKeys.clear());
 window.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='PageDown'){if(scrollProgress<.99){e.preventDefault();window.scrollBy({top:innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}if(e.key==='ArrowUp'||e.key==='PageUp'){if(scrollProgress>.01){e.preventDefault();window.scrollBy({top:-innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}});
