@@ -84,12 +84,40 @@ ground.rotation.x = -Math.PI / 2;
 ground.position.y = -.58;
 scene.add(ground);
 
-// Low rolling hills make the racing world feel continuous beyond the pond.
+// Chunky stepped hills and voxel-like pine trees keep the entire landscape in one pixel-art language.
 for (let i = 0; i < 12; i++) {
-  const hill = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 12), mat(i % 2 ? '#68876b' : '#55785d'));
-  hill.scale.set(8 + (i % 4) * 3, 2.5 + (i % 3), 4 + (i % 5) * 2);
-  hill.position.set((i % 2 ? 1 : -1) * (15 + (i % 4) * 5), -.6, -22 - i * 3.7);
-  scene.add(hill);
+  const side = i % 2 ? 1 : -1;
+  const x = side * (15 + (i % 4) * 5);
+  const z = -22 - i * 3.7;
+  for (let layer = 0; layer < 4; layer++) {
+    const hill = new THREE.Mesh(
+      new THREE.BoxGeometry(9 + (i % 4) * 2 - layer * 1.45, 1.15, 7 + (i % 3) * 2 - layer),
+      mat(layer % 2 ? '#68876b' : '#55785d')
+    );
+    hill.position.set(x, -.15 + layer * .72, z);
+    scene.add(hill);
+  }
+}
+function makePixelPine(x, z, scale = 1) {
+  const tree = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.BoxGeometry(.42*scale, 1.6*scale, .42*scale), mat('#a96b58'));
+  trunk.position.y = .8*scale; tree.add(trunk);
+  for (let layer=0; layer<4; layer++) {
+    const crown = new THREE.Mesh(
+      new THREE.BoxGeometry((2.7-layer*.42)*scale, 1.25*scale, (2.2-layer*.32)*scale),
+      mat(layer%2 ? '#356171' : '#264957')
+    );
+    crown.position.set(0, (1.45+layer*.88)*scale, 0);
+    tree.add(crown);
+  }
+  tree.position.set(x, -.45, z);
+  tree.rotation.y = (Math.round(x*3+z)%4)*.12;
+  scene.add(tree);
+  return tree;
+}
+for (let i=0;i<42;i++) {
+  const side = i%2 ? 1 : -1;
+  makePixelPine(side*(11+(i%5)*2.2), -7-(i%21)*2.45, .58+(i%4)*.12);
 }
 
 
