@@ -702,13 +702,25 @@ function updatePointer(event){
 renderer.domElement.addEventListener('pointermove',updatePointer);
 renderer.domElement.addEventListener('pointerleave',()=>{pointerActive=false;});
 renderer.domElement.addEventListener('pointerdown',event=>{
-  // Clicking a frog toggles a close follow view; otherwise clicks make pond ripples.
+  // Clicking a frog sends it to the nearest lily pad that is not already occupied.
   pointerNdc.x=(event.clientX/innerWidth)*2-1;pointerNdc.y=-(event.clientY/innerHeight)*2+1;
   raycaster.setFromCamera(pointerNdc,camera);
   const frogHits=raycaster.intersectObjects(frogs.map(f=>f.group),true);
   if(frogHits.length){
-    let picked=frogs.find(f=>{let n=frogHits[0].object;while(n&&n!==f.group)n=n.parent;return n===f.group;});
-    if(picked){followedFrog=followedFrog===picked?null:picked;showToast(followedFrog?'FROG FOLLOW CAMERA · CLICK AGAIN TO EXIT':'FOLLOW CAMERA OFF');return;}
+    const hitObject=frogHits[0].object;
+    const picked=frogs.find(f=>{let n=hitObject;while(n&&n!==f.group)n=n.parent;return n===f.group;});
+    if(picked){
+      if(picked.jump){showToast('FROG IS MID-JUMP!');return;}
+      const occupied=new Set(frogs.filter(f=>f!==picked).map(f=>f.padIndex));
+      const destination=nearestPad(picked.padIndex,occupied);
+      if(destination>=0){
+        followedFrog=null;
+        jumpFrog(picked,destination);
+        spawnSplash(picked.group.position.x,picked.group.position.z);
+        waterUniforms.uRipple.value=1.8;
+      } else showToast('NO FREE LILY PADS');
+      return;
+    }
   }
   updatePointer(event);
   if(pointerActive){waterUniforms.uRipple.value=1.8;spawnSplash(pointerWorld.x*pondRadiusX*2-pondRadiusX,pointerWorld.y*pondRadiusZ*2-pondRadiusZ);}
