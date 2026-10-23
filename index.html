@@ -21,6 +21,15 @@
   <header class="topbar">
     <a class="wordmark" href="#" aria-label="Pondside home"><span class="mark">◉</span> PONDSIDE<span class="wordmark-sub"> / INTERACTIVE PORTFOLIO</span></a>
     <div class="live-status"><span class="live-dot"></span><span id="statusText">RACE IN PROGRESS</span></div>
+    <div class="play-controls" aria-label="Play modes">
+      <button id="driveModeButton" class="icon-button mode-button" aria-pressed="false" title="Drive with WASD or arrow keys">DRIVE</button>
+      <button id="freeCameraButton" class="icon-button mode-button" aria-pressed="false" title="Look around with WASD or arrow keys">FREE CAM</button>
+    </div>
+    <div class="view-controls" aria-label="World view controls">
+      <button id="zoomOutButton" class="icon-button view-button" aria-label="Zoom out" title="Zoom out">−</button>
+      <button id="zoomInButton" class="icon-button view-button" aria-label="Zoom in" title="Zoom in">+</button>
+      <button id="resetViewButton" class="icon-button view-button reset-view" aria-label="Reset view" title="Reset view">↺</button>
+    </div>
     <button id="soundToggle" class="icon-button" aria-label="Toggle sound" title="Toggle sound">♪ <span id="soundLabel">SOUND OFF</span></button>
   </header>
 
