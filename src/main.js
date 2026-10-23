@@ -55,12 +55,12 @@ const mats = {};
 function mat(color, roughness = .75, metalness = 0) {
   return new THREE.MeshStandardMaterial({ color, roughness, metalness });
 }
-mats.grass = mat('#66865b');
-mats.darkGrass = mat('#354f59');
-mats.track = mat('#48465a', .85);
-mats.trackEdge = mat('#e2d7b5', .7);
-mats.rock = mat('#a16b91');
-mats.stone = mat('#c0a0a0');
+mats.grass = mat('#6f9a63');
+mats.darkGrass = mat('#456b4a');
+mats.track = mat('#4d5153', .9);
+mats.trackEdge = mat('#d8d8b9', .7);
+mats.rock = mat('#777f82', .92);
+mats.stone = mat('#b7b8a9', .86);
 mats.lily = mat('#58845a', .42);
 mats.lilyLight = mat('#83a765', .55);
 mats.white = mat('#f0eee1', .45);
@@ -72,9 +72,9 @@ mats.frogDark = mat('#315b39', .58);
 mats.koiWhite = mat('#f0eee2', .34);
 mats.koiOrange = mat('#e76b3f', .42);
 mats.koiBlack = mat('#242a2b', .45);
-mats.bark = mat('#a95e57');
-mats.leaf = mat('#264957');
-mats.leaf2 = mat('#356171');
+mats.bark = mat('#765341');
+mats.leaf = mat('#356847');
+mats.leaf2 = mat('#4f8050');
 
 
 function pixelMountain(x,z,w,h,colors){
@@ -83,12 +83,50 @@ function pixelMountain(x,z,w,h,colors){
  g.position.set(x,0,z);scene.add(g);
  if(h>15)for(let k=0;k<4;k++){const cap=new THREE.Mesh(new THREE.BoxGeometry(w*.12,1.2,3.6),mat('#f0dfd7'));cap.position.set(x-w*.13+k*w*.09,h*.43,z);scene.add(cap);}
 }
-for(let i=0;i<14;i++){const x=-38+i*5.8;pixelMountain(x,-48-(i%3)*3,13+(i%4)*2,17+(i%5)*3,['#70527f','#a16b91','#d7859a']);pixelMountain(x+2,-40-(i%4)*2,9+(i%3)*2,10+(i%4)*2,['#875783','#bd7895','#d78a9c']);}
+for(let i=0;i<14;i++){const x=-38+i*5.8;pixelMountain(x,-48-(i%3)*3,13+(i%4)*2,17+(i%5)*3,['#728c7c','#91a88b','#c2bca0']);pixelMountain(x+2,-40-(i%4)*2,9+(i%3)*2,10+(i%4)*2,['#6d8e7a','#9bb393','#c7c3a6']);}
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(150, 150), mats.grass);
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -.58;
 scene.add(ground);
 
+// Meadow rocks and a tiny legendary sword landmark, built from crisp low-poly blocks.
+function makeMeadowRock(x,z,scale=1,seed=0){
+  const g=new THREE.Group();
+  const base=new THREE.Mesh(new THREE.DodecahedronGeometry(1,0),mat(seed%2?'#8b9490':'#707b7a',.96));
+  base.scale.set(1.15*scale,.72*scale,.92*scale);base.position.y=.03*scale;g.add(base);
+  const cap=new THREE.Mesh(new THREE.BoxGeometry(.9*scale,.18*scale,.8*scale),mat('#b7b9a8',.94));
+  cap.position.set(-.08*scale,.48*scale,-.04*scale);cap.rotation.y=.18;g.add(cap);
+  const shade=new THREE.Mesh(new THREE.BoxGeometry(.55*scale,.12*scale,.82*scale),mat('#596967',1));
+  shade.position.set(.23*scale,.28*scale,.08*scale);shade.rotation.z=-.18;g.add(shade);
+  g.position.set(x,-.46,z);g.rotation.y=seed*.73;scene.add(g);return g;
+}
+[
+ [-10,-10,1.6,1],[-8.5,-12,.9,2],[10,-13,1.35,3],[12,-11,.8,4],
+ [-12,-3,.95,5],[11,3,1.25,6],[-7,8,.72,7],[8,8,.85,8],
+ [-18,-25,2.2,9],[18,-29,2.4,10],[-23,-35,1.8,11],[24,-37,2,12]
+].forEach(v=>makeMeadowRock(...v));
+const relic=new THREE.Group();
+const relicStone=new THREE.Mesh(new THREE.DodecahedronGeometry(1,0),mat('#697674',.96));
+relicStone.scale.set(1.18,.88,1.05);relicStone.position.y=.14;relic.add(relicStone);
+const swordBlade=new THREE.Mesh(new THREE.BoxGeometry(.16,1.75,.12),mat('#d7e7df',.28,.45));
+swordBlade.position.set(0,1.25,0);swordBlade.rotation.z=-.12;relic.add(swordBlade);
+const swordEdge=new THREE.Mesh(new THREE.BoxGeometry(.045,1.45,.035),new THREE.MeshBasicMaterial({color:0xf4fff0}));
+swordEdge.position.set(-.055,1.28,.07);swordEdge.rotation.z=-.12;relic.add(swordEdge);
+const guard=new THREE.Mesh(new THREE.BoxGeometry(.72,.13,.19),mat('#d5a65f',.42,.35));
+guard.position.set(0,.52,0);guard.rotation.z=-.12;relic.add(guard);
+const grip=new THREE.Mesh(new THREE.BoxGeometry(.19,.52,.2),mat('#75503c',.8));
+grip.position.set(0,.2,0);grip.rotation.z=-.12;relic.add(grip);
+const pommel=new THREE.Mesh(new THREE.BoxGeometry(.28,.2,.24),mat('#e4c27a',.4,.3));
+pommel.position.set(0,-.07,0);relic.add(pommel);
+relic.position.set(5.4,-.2,-10.2);relic.rotation.y=-.22;scene.add(relic);
+// Soft, stylised godrays: translucent tapered beams pointing from the sun into the meadow.
+const rayGroup=new THREE.Group();scene.add(rayGroup);
+for(let i=0;i<5;i++){
+ const ray=new THREE.Mesh(new THREE.ConeGeometry(.65+i*.14,17+i*1.8,4,1,true),
+  new THREE.MeshBasicMaterial({color:i%2?0xffefc2:0xfff6d9,transparent:true,opacity:.055,depthWrite:false,side:THREE.DoubleSide}));
+ ray.position.set(-7+i*4,10,-14-i*2.1);ray.rotation.z=.22+i*.045;ray.rotation.x=.15;
+ rayGroup.add(ray);
+}
 // Chunky stepped hills and voxel-like pine trees keep the entire landscape in one pixel-art language.
 for (let i = 0; i < 12; i++) {
   const side = i % 2 ? 1 : -1;
