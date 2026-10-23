@@ -185,15 +185,21 @@ for (let i = 0; i < 28; i++) {
   scene.add(tree);
 }
 function makeTree() {
+  // Rebuilt as a layered voxel cedar so every tree matches the low-poly world.
   const g = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.12, .2, 1.6, 7), mats.bark);
-  trunk.position.y = .55; g.add(trunk);
-  for (let j = 0; j < 3; j++) {
-    const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(.7 + j * .14, 1), j % 2 ? mats.leaf : mats.leaf2);
-    crown.position.set((j - 1) * .25, 1.25 + j * .42, (j % 2) * .18);
-    crown.scale.set(1.1, 1.2, 1);
+  const trunk = new THREE.Mesh(new THREE.BoxGeometry(.34, 1.35, .34), mats.bark);
+  trunk.position.y = .58; g.add(trunk);
+  for (let j = 0; j < 4; j++) {
+    const width = 1.75 - j * .31;
+    const crown = new THREE.Mesh(
+      new THREE.BoxGeometry(width, .78, 1.25 - j * .18),
+      j % 2 ? mats.leaf : mats.leaf2
+    );
+    crown.position.set((j % 2 ? .06 : -.04), .9 + j * .48, j % 2 ? .04 : -.03);
     g.add(crown);
   }
+  const highlight = new THREE.Mesh(new THREE.BoxGeometry(.12,.48,.12),mat('#4d7d78'));
+  highlight.position.set(-.47,1.9,-.16);g.add(highlight);
   return g;
 }
 
@@ -209,6 +215,19 @@ function makeCar(color, scale = 1) {
   cabin.position.set(0, .72, .05); g.add(cabin);
   const roof = new THREE.Mesh(new THREE.BoxGeometry(.84, .08, .8), mat(color, .26, .2));
   roof.position.set(0, .96, .08); g.add(roof);
+  // Extra silhouette details: front splitter, rear wing, side skirts and pixel windshield.
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(.91,.22,.055),mat('#8ac9cf',.18,.22));
+  glass.position.set(0,.77,-.49);glass.rotation.x=-.18;g.add(glass);
+  const splitter = new THREE.Mesh(new THREE.BoxGeometry(1.62,.08,.28),mat('#202629',.42,.22));
+  splitter.position.set(0,.25,-1.42);g.add(splitter);
+  const skirt = new THREE.Mesh(new THREE.BoxGeometry(.12,.13,1.65),mat('#202629',.5,.15));
+  for(const x of [-.79,.79]){const part=skirt.clone();part.position.set(x,.28,.12);g.add(part);}
+  const wingBar = new THREE.Mesh(new THREE.BoxGeometry(1.18,.08,.16),mat('#202629',.4,.25));
+  wingBar.position.set(0,.79,1.34);g.add(wingBar);
+  for(const x of [-.46,.46]){
+    const support=new THREE.Mesh(new THREE.BoxGeometry(.07,.28,.07),mat('#202629'));
+    support.position.set(x,.65,1.28);g.add(support);
+  }
   for (const x of [-.79, .79]) for (const z of [-.85, .85]) {
     const wheel = new THREE.Mesh(new THREE.BoxGeometry(.2, .42, .42), mat('#242a35', .8));
     wheel.position.set(x, .25, z); g.add(wheel);
@@ -393,8 +412,12 @@ function makeKoi(index, x, z) {
   body.position.y=.04; g.add(body);
   const patch = new THREE.Mesh(new THREE.BoxGeometry(.34,.13,.29), patchMat);
   patch.position.set(0,.17,-.12); g.add(patch);
-  const tail = new THREE.Mesh(new THREE.BoxGeometry(.22,.1,.34), patchMat);
-  tail.position.set(0,.03,.59); g.add(tail);
+  const tailJoint = new THREE.Group();
+  tailJoint.position.set(0,.03,.48);g.add(tailJoint);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(.28,.09,.34), patchMat);
+  tail.position.z=.16;tailJoint.add(tail);
+  const dorsal = new THREE.Mesh(new THREE.BoxGeometry(.13,.11,.34),patchMat);
+  dorsal.position.set(0,.17,.02);g.add(dorsal);
   for (const side of [-1,1]) {
     const fin = new THREE.Mesh(new THREE.BoxGeometry(.18,.055,.28), index%2?mats.koiWhite:mats.koiOrange);
     fin.position.set(side*.24,-.04,.08); fin.rotation.y=side*.22; g.add(fin);
@@ -405,7 +428,7 @@ function makeKoi(index, x, z) {
     eye.position.set(side*.17,.1,-.32); g.add(eye);
   }
   g.position.set(x,-.035,z); pondGroup.add(g);
-  koi.push({group:g,home:new THREE.Vector3(x,0,z),target:new THREE.Vector3(x,0,z),phase:Math.random()*6,speed:.45+Math.random()*.38,scare:0,index});
+  koi.push({group:g,tail:tailJoint,home:new THREE.Vector3(x,0,z),target:new THREE.Vector3(x,0,z),phase:Math.random()*6,speed:.45+Math.random()*.38,scare:0,index});
 }
 makeKoi(0,-1.5,-1.1); makeKoi(1,1.4,-.9); makeKoi(2,.2,1.8); makeKoi(3,-4.8,.8); makeKoi(4,4.8,.6); makeKoi(5,-.8,3.7); makeKoi(6,2.5,-3.7);
 
@@ -415,8 +438,13 @@ function makeFrog() {
   const g = new THREE.Group();
   const body = new THREE.Mesh(new THREE.BoxGeometry(.38,.2,.4),mats.frog);
   body.position.y=.19; g.add(body);
-  const head = new THREE.Mesh(new THREE.BoxGeometry(.34,.24,.3),mats.frog);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(.38,.25,.34),mats.frog);
   head.position.set(0,.34,-.12); g.add(head);
+  // Small cheek blocks and brighter eye caps make the frog readable at portfolio scale.
+  for(const side of [-1,1]){
+    const cheek=new THREE.Mesh(new THREE.BoxGeometry(.09,.09,.09),mat('#9ad66a'));
+    cheek.position.set(side*.2,.3,-.2);g.add(cheek);
+  }
   const eyes=[];
   for (const s of [-1,1]) {
     const eyeStem = new THREE.Mesh(new THREE.BoxGeometry(.11,.13,.11),mats.frog);
@@ -785,12 +813,17 @@ function animate(){
   // Scroll is the timeline: sky -> circuit/race -> overhead pond. Each pose blends into the next.
   // 2.5D camera path: an oblique, isometric-inspired angle gives the voxel world
   // clear foreground/midground/background layers without losing the scroll journey.
+  // A longer cinematic route: wide sky reveal, low fly-through over the racers,
+  // a sweeping side pass, then a gentle orbit-like descent to the pond.
   const keyframes = [
-    { p: 0,    pos: new THREE.Vector3(8, 5, 9),      target: new THREE.Vector3(0, 17, -22), fov: 48 },
-    { p: .18,  pos: new THREE.Vector3(11, 8, 3),     target: new THREE.Vector3(0, 0, -19),  fov: 55 },
-    { p: .42,  pos: new THREE.Vector3(12, 6.2, -6),  target: new THREE.Vector3(0, 0, -19),  fov: 61 },
-    { p: .64,  pos: new THREE.Vector3(10, 12, 2),    target: new THREE.Vector3(0, 0, -2),   fov: 53 },
-    { p: 1,    pos: new THREE.Vector3(12, 18, 12),  target: new THREE.Vector3(0, 0, 0),    fov: 43 }
+    { p: 0,    pos: new THREE.Vector3(10, 7, 13),     target: new THREE.Vector3(0, 16, -28), fov: 47 },
+    { p: .12,  pos: new THREE.Vector3(15, 10, 1),      target: new THREE.Vector3(-1, 1, -22), fov: 54 },
+    { p: .27,  pos: new THREE.Vector3(17, 4.8, -12),   target: new THREE.Vector3(0, .5, -19), fov: 64 },
+    { p: .43,  pos: new THREE.Vector3(-14, 5.8, -21),  target: new THREE.Vector3(0, .4, -19), fov: 60 },
+    { p: .57,  pos: new THREE.Vector3(-9, 10, -1),     target: new THREE.Vector3(0, .2, -8),  fov: 55 },
+    { p: .72,  pos: new THREE.Vector3(13, 13, 7),      target: new THREE.Vector3(0, 0, 0),    fov: 49 },
+    { p: .86,  pos: new THREE.Vector3(9, 8, 13),       target: new THREE.Vector3(0, 0, 0),    fov: 46 },
+    { p: 1,    pos: new THREE.Vector3(4, 20, 8),       target: new THREE.Vector3(0, 0, 0),    fov: 42 }
   ];
   let a=keyframes[0], b=keyframes[keyframes.length-1];
   for(let i=0;i<keyframes.length-1;i++){if(scrollProgress>=keyframes[i].p&&scrollProgress<=keyframes[i+1].p){a=keyframes[i];b=keyframes[i+1];break;}}
