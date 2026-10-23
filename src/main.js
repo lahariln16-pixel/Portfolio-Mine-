@@ -90,6 +90,143 @@ ground.rotation.x = -Math.PI / 2;
 ground.position.y = -.58;
 scene.add(ground);
 
+// PONDSIDE DETAIL PASS — wild meadow, tiny props, drifting butterflies and layered clouds.
+// Repeated plants use InstancedMesh so the extra detail stays inexpensive to draw.
+const meadowDetail = new THREE.Group();
+scene.add(meadowDetail);
+const grassBladeGeo = new THREE.BoxGeometry(.055,.28,.055);
+const grassBladeMat = mat('#668b58');
+const grassBladeLightMat = mat('#9bbd72');
+const grassDarkMat = mat('#496f4d');
+const grassInstances = [
+  new THREE.InstancedMesh(grassBladeGeo,grassBladeMat,900),
+  new THREE.InstancedMesh(grassBladeGeo,grassBladeLightMat,650),
+  new THREE.InstancedMesh(new THREE.BoxGeometry(.045,.19,.045),grassDarkMat,520)
+];
+const flowerPetalMats = ['#f1d8a4','#f4c5b9','#e9e9c5','#c6d9ae','#d8c8eb'].map(c=>mat(c));
+const flowerCenters = mat('#d39a58');
+const flowerStemMat = mat('#547b4e');
+const flowerPetalGeo = new THREE.BoxGeometry(.105,.055,.075);
+const flowerCenterGeo = new THREE.BoxGeometry(.07,.07,.07);
+const flowerStemGeo = new THREE.BoxGeometry(.035,.22,.035);
+const flowerInstances = flowerPetalMats.map(m=>new THREE.InstancedMesh(flowerPetalGeo,m,68));
+const flowerCenterInstances = new THREE.InstancedMesh(flowerCenterGeo,flowerCenters,340);
+const flowerStemInstances = new THREE.InstancedMesh(flowerStemGeo,flowerStemMat,340);
+const detailDummy = new THREE.Object3D();
+function inPondOrTrack(x,z){
+  const pond=((x/7.8)**2+(z/5.9)**2)<1.28;
+  const track=((x/20.8)**2+((z+19)/11.8)**2);
+  return pond || (track>.76 && track<1.28);
+}
+function meadowPoint(){
+  for(let tries=0;tries<30;tries++){
+    const x=(Math.random()-.5)*58, z=-31+Math.random()*49;
+    if(!inPondOrTrack(x,z)) return {x,z};
+  }
+  return {x:(Math.random()-.5)*58,z:Math.random()*15-25};
+}
+let grassCounts=[0,0,0], flowerCounts=[0,0,0,0,0], centerCount=0, stemCount=0;
+for(let i=0;i<2070;i++){
+  const p=meadowPoint(), type=i<900?0:i<1550?1:2;
+  const mesh=grassInstances[type], slot=grassCounts[type]++;
+  detailDummy.position.set(p.x,-.48,p.z);
+  detailDummy.rotation.set((Math.random()-.5)*.12,Math.random()*Math.PI*2,(Math.random()-.5)*.25);
+  const scale=.55+Math.random()*1.5;
+  detailDummy.scale.set(scale,.55+Math.random()*1.25,scale);
+  detailDummy.updateMatrix();mesh.setMatrixAt(slot,detailDummy.matrix);
+}
+grassInstances.forEach(m=>{m.instanceMatrix.needsUpdate=true;meadowDetail.add(m);});
+for(let i=0;i<340;i++){
+  const p=meadowPoint(), size=.65+Math.random()*.8, petalType=Math.floor(Math.random()*flowerPetalMats.length);
+  detailDummy.position.set(p.x,-.35,p.z);detailDummy.rotation.set(0,Math.random()*Math.PI*2,0);detailDummy.scale.setScalar(size);detailDummy.updateMatrix();
+  flowerStemInstances.setMatrixAt(stemCount++,detailDummy.matrix);
+  detailDummy.position.set(p.x,-.22+Math.random()*.025,p.z);detailDummy.rotation.set(0,Math.random()*Math.PI*2,0);detailDummy.scale.setScalar(size);detailDummy.updateMatrix();
+  flowerCenterInstances.setMatrixAt(centerCount++,detailDummy.matrix);
+  for(let k=0;k<5;k++){
+    detailDummy.position.set(p.x+Math.cos(k*Math.PI*2/5)*.075*size,-.19,p.z+Math.sin(k*Math.PI*2/5)*.075*size);
+    detailDummy.rotation.set(0,k*Math.PI*2/5,0);detailDummy.scale.setScalar(size);detailDummy.updateMatrix();
+    flowerInstances[petalType].setMatrixAt(flowerCounts[petalType]++,detailDummy.matrix);
+  }
+}
+flowerInstances.forEach((m,i)=>{m.count=flowerCounts[i];m.instanceMatrix.needsUpdate=true;meadowDetail.add(m);});
+flowerCenterInstances.count=centerCount;flowerCenterInstances.instanceMatrix.needsUpdate=true;meadowDetail.add(flowerCenterInstances);
+flowerStemInstances.count=stemCount;flowerStemInstances.instanceMatrix.needsUpdate=true;meadowDetail.add(flowerStemInstances);
+
+// Fallen timber, mushroom families and fern-like fronds give the ground a closer inspection reward.
+const tinyProps=[];
+const mushroomCaps=['#d98f72','#e7c7a0','#b7c8a0'].map(c=>mat(c));
+for(let i=0;i<34;i++){
+  const p=meadowPoint(), g=new THREE.Group(), sc=.35+Math.random()*.5;
+  const stem=new THREE.Mesh(new THREE.BoxGeometry(.09*sc,.22*sc,.09*sc),mat('#e7d8b9'));
+  stem.position.y=-.38+.11*sc;g.add(stem);
+  const cap=new THREE.Mesh(new THREE.BoxGeometry(.3*sc,.12*sc,.27*sc),mushroomCaps[i%3]);
+  cap.position.y=-.27+.16*sc;g.add(cap);
+  if(i%3===0){
+    const spot=new THREE.Mesh(new THREE.BoxGeometry(.055*sc,.025*sc,.055*sc),mat('#fff0d0'));
+    spot.position.set(.04*sc,-.2+.16*sc,.02*sc);g.add(spot);
+  }
+  g.position.set(p.x,0,p.z);g.rotation.y=Math.random()*Math.PI*2;meadowDetail.add(g);
+  tinyProps.push({group:g,phase:Math.random()*6,kind:'mushroom'});
+}
+for(let i=0;i<22;i++){
+  const p=meadowPoint(), g=new THREE.Group(), len=.5+Math.random()*.8;
+  const log=new THREE.Mesh(new THREE.BoxGeometry(len,.16,.19),mat(i%2?'#735b42':'#8b6a49'));
+  log.position.y=-.43;log.rotation.z=(Math.random()-.5)*.12;g.add(log);
+  const cut=new THREE.Mesh(new THREE.BoxGeometry(.16,.13,.2),mat('#c2a078'));
+  cut.position.set(len*.48,-.43,0);g.add(cut);
+  for(let j=0;j<3;j++){
+    const moss=new THREE.Mesh(new THREE.BoxGeometry(.12,.035,.11),mat(j%2?'#729064':'#9cb77a'));
+    moss.position.set((Math.random()-.5)*len,-.33,(Math.random()-.5)*.12);g.add(moss);
+  }
+  g.position.set(p.x,0,p.z);g.rotation.y=Math.random()*Math.PI*2;meadowDetail.add(g);
+}
+for(let i=0;i<38;i++){
+  const p=meadowPoint(), g=new THREE.Group(), h=.25+Math.random()*.42;
+  for(let j=0;j<5;j++){
+    const leaf=new THREE.Mesh(new THREE.BoxGeometry(.08,h,.055),mat(j%2?'#537b50':'#75965a'));
+    leaf.position.set((Math.random()-.5)*.22,h*.35,(Math.random()-.5)*.2);
+    leaf.rotation.z=(Math.random()-.5)*.9;leaf.rotation.x=(Math.random()-.5)*.55;g.add(leaf);
+  }
+  g.position.set(p.x,-.45,p.z);g.rotation.y=Math.random()*Math.PI*2;meadowDetail.add(g);
+}
+
+// Butterflies are small voxel wings on a hovering body; they drift in looping, non-identical paths.
+const butterflies=[];
+const butterflyColors=[0xffd5a3,0xf4b7d0,0xc8d6ff,0xe9e8a6,0xd7c5f2];
+for(let i=0;i<9;i++){
+  const g=new THREE.Group(), color=butterflyColors[i%butterflyColors.length];
+  const wingMat=new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide});
+  const left=new THREE.Mesh(new THREE.BoxGeometry(.17,.025,.13),wingMat);
+  const right=new THREE.Mesh(new THREE.BoxGeometry(.17,.025,.13),wingMat);
+  left.position.x=-.09;right.position.x=.09;g.add(left,right);
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.035,.07,.035),mat('#3d4a3d'));g.add(body);
+  g.position.set((Math.random()-.5)*24,.7+Math.random()*1.5,-22+Math.random()*31);
+  scene.add(g);
+  butterflies.push({group:g,left,right,phase:Math.random()*Math.PI*2,speed:.45+Math.random()*.55,home:g.position.clone(),radius:1.2+Math.random()*2.3});
+}
+
+// Puffy pixel clouds add multiple planes of depth and slowly drift across the sky.
+const driftingClouds=[];
+for(let i=0;i<8;i++){
+  const g=new THREE.Group(), cloudMat=new THREE.MeshBasicMaterial({color:i%3===0?0xf4e5d0:i%3===1?0xe1e8d3:0xd4e4df,transparent:true,opacity:.78,depthWrite:false});
+  for(let j=0;j<6;j++){
+    const puff=new THREE.Mesh(new THREE.BoxGeometry(1.5+(j%3)*.5,.42+(j%2)*.18, .75),cloudMat);
+    puff.position.set((j-2.5)*.68,(j%3)*.2,Math.sin(j*1.7)*.15);g.add(puff);
+  }
+  g.position.set((Math.random()-.5)*46,13+Math.random()*7,-30+Math.random()*34);
+  g.scale.setScalar(.8+Math.random()*.8);scene.add(g);
+  driftingClouds.push({group:g,speed:.18+Math.random()*.18,homeZ:g.position.z,phase:Math.random()*6});
+}
+
+// More intricate bridge-like stepping stones create a readable little trail through the meadow.
+for(let i=0;i<17;i++){
+  const z=5.5+i*.67,x=-10+Math.sin(i*.31)*1.5;
+  const stone=new THREE.Mesh(new THREE.BoxGeometry(.8,.13,.48),mat(i%3===0?'#b9b7a1':'#8e9b8b'));
+  stone.position.set(x,-.48,z);stone.rotation.y=(Math.random()-.5)*.24;scene.add(stone);
+  const moss=new THREE.Mesh(new THREE.BoxGeometry(.24,.025,.08),mat('#7f9a69'));
+  moss.position.set(x-.12,-.405,z+.04);moss.rotation.y=stone.rotation.y;scene.add(moss);
+}
+
 // Meadow rocks and a tiny legendary sword landmark, built from crisp low-poly blocks.
 function makeMeadowRock(x,z,scale=1,seed=0){
   const g=new THREE.Group();
@@ -950,6 +1087,21 @@ function animate(){
     f.mesh.material.opacity=(timeIndex===3?.85:timeIndex===2?.34:.08)+Math.sin(elapsed*2+f.phase)*.12;
     f.mesh.visible=scrollProgress>.48;
   });
+  // Small, layered life motions are deterministic and intentionally gentle.
+  butterflies.forEach((b)=>{
+    const t=elapsed*b.speed+b.phase;
+    b.group.position.set(b.home.x+Math.sin(t*.7)*b.radius,b.home.y+Math.sin(t*1.8)*.22,b.home.z+Math.cos(t*.55)*b.radius*.65);
+    b.group.rotation.y=Math.atan2(Math.cos(t*.55)*b.radius*.65,Math.cos(t*.7)*b.radius);
+    const flap=reduceMotion?0.05:Math.abs(Math.sin(t*8))*.75+.12;
+    b.left.rotation.z=flap;b.right.rotation.z=-flap;
+    b.group.visible=scrollProgress<.94;
+  });
+  driftingClouds.forEach((c)=>{
+    c.group.position.x+=c.speed*dt;
+    if(c.group.position.x>29)c.group.position.x=-29;
+    c.group.position.y+=Math.sin(elapsed*.12+c.phase)*dt*.04;
+  });
+  tinyProps.forEach(p=>{if(p.kind==='mushroom'&&!reduceMotion)p.group.rotation.z=Math.sin(elapsed*.6+p.phase)*.012;});
   // Scroll is the timeline: sky -> circuit/race -> overhead pond. Each pose blends into the next.
   // 2.5D camera path: an oblique, isometric-inspired angle gives the voxel world
   // clear foreground/midground/background layers without losing the scroll journey.
