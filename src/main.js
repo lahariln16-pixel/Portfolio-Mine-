@@ -649,6 +649,7 @@ document.querySelector('#zoomOutButton').addEventListener('click',()=>{camera.zo
 document.querySelector('#resetViewButton').addEventListener('click',()=>{
   camera.zoom=1;camera.updateProjectionMatrix();window.scrollTo({top:0,behavior:reduceMotion?'auto':'smooth'});
   weatherIndex=0;timeIndex=0;applyEnvironment();followedFrog=null;driveMode=false;freeCameraMode=false;driveKeys.clear();freeYaw=0;freePitch=0;
+  racers.forEach((r,i)=>{r.phase=i*Math.PI*.5;r.speed=.32+i*.035;});
   document.querySelector('#driveModeButton').textContent='DRIVE';document.querySelector('#driveModeButton').setAttribute('aria-pressed','false');
   document.querySelector('#freeCameraButton').textContent='FREE CAM';document.querySelector('#freeCameraButton').setAttribute('aria-pressed','false');
   showToast('WORLD VIEW RESET');
@@ -841,4 +842,8 @@ window.addEventListener('keydown',e=>{
 });
 window.addEventListener('keyup',e=>driveKeys.delete(e.key.toLowerCase()));
 window.addEventListener('blur',()=>driveKeys.clear());
-window.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='PageDown'){if(scrollProgress<.99){e.preventDefault();window.scrollBy({top:innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}if(e.key==='ArrowUp'||e.key==='PageUp'){if(scrollProgress>.01){e.preventDefault();window.scrollBy({top:-innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}});
+window.addEventListener('keydown',e=>{
+  if(driveMode||freeCameraMode)return;
+  if(e.key==='ArrowDown'||e.key==='PageDown'){if(scrollProgress<.99){e.preventDefault();window.scrollBy({top:innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}
+  if(e.key==='ArrowUp'||e.key==='PageUp'){if(scrollProgress>.01){e.preventDefault();window.scrollBy({top:-innerHeight*.55,behavior:reduceMotion?'auto':'smooth'});}}
+});
